@@ -1,0 +1,400 @@
+import { useState, useEffect } from 'react';
+import { X, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CARDED_HAND_PAYOUTS, COLOR_BOARD_PAYOUTS, LOW_HIGH_PAYOUT, RIVER_STATE_PAYOUTS } from '@/lib/payoutConstants';
+import { VERSIONS_STORAGE_KEY, DEFAULT_VERSIONS } from '@/hooks/useGameVersions';
+import { HAND_BET_REDUCTIONS, RANK_BET_REDUCTIONS } from '@/lib/bellCurveConfig';
+import { PER_HAND_RANK_PAYOUTS } from '@/lib/perHandRankPayouts';
+
+const BELL_CURVE_STORAGE_KEY = 'rapidfire_bell_curve_config';
+
+function loadBellCurveConfig() {
+  try {
+    const saved = localStorage.getItem(BELL_CURVE_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        handReductions: parsed.handReductions || HAND_BET_REDUCTIONS,
+        rankReductions: parsed.rankReductions || RANK_BET_REDUCTIONS,
+      };
+    }
+  } catch {}
+  return { handReductions: HAND_BET_REDUCTIONS, rankReductions: RANK_BET_REDUCTIONS };
+}
+
+const HAND_LABELS_SHORT = ['1','2','3','4','5','6','7','8','9','10'];
+const RANK_LABELS_SHORT  = ['1','2','3','4','5','6','7'];
+
+const FIXED_HANDS = [
+  { id: 1,  label: 'A\u2666 / 10\u2665', payout: CARDED_HAND_PAYOUTS[0] },
+  { id: 2,  label: 'K\u2663 / K\u2660',  payout: CARDED_HAND_PAYOUTS[1] },
+  { id: 3,  label: 'Q\u2663 / J\u2660',  payout: CARDED_HAND_PAYOUTS[2] },
+  { id: 4,  label: 'Q\u2660 / 10\u2660', payout: CARDED_HAND_PAYOUTS[3] },
+  { id: 5,  label: 'J\u2663 / 9\u2663',  payout: CARDED_HAND_PAYOUTS[4] },
+  { id: 6,  label: '8\u2666 / 6\u2666',  payout: CARDED_HAND_PAYOUTS[5] },
+  { id: 7,  label: '7\u2666 / 7\u2660',  payout: CARDED_HAND_PAYOUTS[6] },
+  { id: 8,  label: '4\u2665 / 2\u2665',  payout: CARDED_HAND_PAYOUTS[7] },
+  { id: 9,  label: '3\u2663 / 3\u2665',  payout: CARDED_HAND_PAYOUTS[8] },
+  { id: 10, label: 'A\u2665 / 5\u2666',  payout: CARDED_HAND_PAYOUTS[9] },
+];
+
+const RANK_BETS = [
+  { name: 'Four of a Kind',  note: 'Odds vary by card hand', color: 'text-yellow-300' },
+  { name: 'Full House',      note: 'Odds vary by card hand', color: 'text-green-300' },
+  { name: 'Flush',           note: 'Odds vary by card hand', color: 'text-blue-300' },
+  { name: 'Straight',        note: 'Odds vary by card hand', color: 'text-teal-300' },
+  { name: 'Three of a Kind', note: 'Odds vary by card hand', color: 'text-green-300' },
+  { name: 'Two Pair',        note: 'Odds vary by card hand', color: 'text-green-300' },
+  { name: 'One Pair',        note: 'Odds vary by card hand', color: 'text-blue-300' },
+];
+
+const COLOR_BETS = [
+  { key: '3 Red',   payout: `${COLOR_BOARD_PAYOUTS['3R']}:1` },
+  { key: '4 Red',   payout: `${COLOR_BOARD_PAYOUTS['4R']}:1` },
+  { key: '5 Red',   payout: `${COLOR_BOARD_PAYOUTS['5R']}:1` },
+  { key: '3 Black', payout: `${COLOR_BOARD_PAYOUTS['3B']}:1` },
+  { key: '4 Black', payout: `${COLOR_BOARD_PAYOUTS['4B']}:1` },
+  { key: '5 Black', payout: `${COLOR_BOARD_PAYOUTS['5B']}:1` },
+];
+
+const RANK_ORDER = ['One Pair', 'Two Pair', 'Three of a Kind', 'Straight', 'Flush', 'Full House', 'Four of a Kind'];
+const RANK_ORDER_SHORT = ['One Pair', 'Two Pair', '3 of a Kind', 'Straight', 'Flush', 'Full House', '4 of a Kind'];
+
+function RankPayoutMatrix() {
+  return (
+    <div className="overflow-x-auto rounded-lg border border-slate-700">
+      <table className="w-full text-xs border-collapse">
+        <thead>
+          <tr className="bg-slate-800/80">
+            <th className="px-2 py-2 text-left text-gray-400 font-semibold sticky left-0 bg-slate-800/80">Hand</th>
+            {RANK_ORDER_SHORT.map(r => (
+              <th key={r} className="px-2 py-2 text-center text-gray-400 font-semibold whitespace-nowrap">{r}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {FIXED_HANDS.map((h, i) => (
+            <tr key={h.id} className={i % 2 === 0 ? 'bg-slate-900/40' : 'bg-slate-800/30'}>
+              <td className="px-2 py-1.5 text-white font-bold whitespace-nowrap sticky left-0 bg-inherit">{h.label}</td>
+              {RANK_ORDER.map(rank => {
+                const val = PER_HAND_RANK_PAYOUTS[h.id]?.[rank];
+                return (
+                  <td key={rank} className="px-2 py-1.5 text-center">
+                    {val != null
+                      ? <span className="text-yellow-300 font-bold">{val}</span>
+                      : <span className="text-gray-600">N/A</span>}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function loadVersions() {
+  try {
+    const saved = localStorage.getItem(VERSIONS_STORAGE_KEY);
+    return saved ? { ...DEFAULT_VERSIONS, ...JSON.parse(saved) } : { ...DEFAULT_VERSIONS };
+  } catch {
+    return { ...DEFAULT_VERSIONS };
+  }
+}
+
+function plural(n, word) {
+  return `${n} ${word}${n !== 1 ? 's' : ''}`;
+}
+
+function Section({ title, children, defaultOpen = true }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-slate-700 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-5 py-3 bg-slate-800/80 hover:bg-slate-700/60 transition-colors"
+      >
+        <span className="font-bold text-yellow-400 text-sm tracking-wide uppercase">{title}</span>
+        {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+      </button>
+      {open && <div className="px-5 py-4 bg-slate-900/40 text-sm text-gray-300 space-y-2">{children}</div>}
+    </div>
+  );
+}
+
+function Rule({ label, children }) {
+  return (
+    <div className="flex gap-2">
+      <span className="text-yellow-500 mt-0.5 flex-shrink-0">•</span>
+      <div><span className="text-white font-semibold">{label}</span>{children && <span className="text-gray-300"> — {children}</span>}</div>
+    </div>
+  );
+}
+
+function VersionBadge({ label, value }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-yellow-900/30 border border-yellow-700/40 text-yellow-300 text-xs font-bold">
+      {label}: <span className="text-white">{value}</span>
+    </span>
+  );
+}
+
+export default function GameRulesModal({ asMenuItem = false, buttonStyle = null, buttonHoverStyle = null }) {
+  const [open, setOpen] = useState(false);
+  const [menuHover, setMenuHover] = useState(false);
+  const [v, setV] = useState(DEFAULT_VERSIONS);
+  const [bellCurve, setBellCurve] = useState({ handReductions: HAND_BET_REDUCTIONS, rankReductions: RANK_BET_REDUCTIONS });
+
+  // Load versions each time modal opens
+  useEffect(() => {
+    if (open) {
+      setV(loadVersions());
+      setBellCurve(loadBellCurveConfig());
+    }
+  }, [open]);
+
+  const maxHands       = v.maxCardHands ?? 1;
+  const maxRanks       = v.maxRankSlots ?? 1;
+  const rankLockAt     = v.rankLockThreshold ?? 1;
+  const colorBothSides = v.colorBothSides ?? false;
+
+  return (
+    <>
+      {asMenuItem ? (
+        <button
+          onClick={() => setOpen(true)}
+          onMouseEnter={() => setMenuHover(true)}
+          onMouseLeave={() => setMenuHover(false)}
+          style={
+            buttonStyle
+              ? (menuHover && buttonHoverStyle ? { ...buttonStyle, ...buttonHoverStyle } : buttonStyle)
+              : {
+                  width: '100%', padding: '10px 12px', borderRadius: 8,
+                  border: '1.5px solid rgba(232,184,75,0.4)',
+                  background: 'rgba(60,35,0,0.4)',
+                  color: '#fde047', fontSize: 13, fontWeight: 700,
+                  fontFamily: "'Oswald', sans-serif", letterSpacing: '0.04em',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'flex-start',
+                }
+          }
+        >
+          Game Rules
+        </button>
+      ) : (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-700/50 bg-blue-900/20 text-blue-300 text-xs font-bold hover:border-blue-500 hover:bg-blue-900/40 transition-all"
+        >
+          <BookOpen className="w-3.5 h-3.5" />
+          Game Rules
+        </button>
+      )}
+
+      <AnimatePresence>
+        {open && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setOpen(false)}
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92 }}
+              className="relative w-full max-w-3xl max-h-[90vh] bg-slate-900 border border-yellow-700/40 rounded-2xl shadow-2xl flex flex-col overflow-hidden z-10"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-yellow-700/30 bg-gradient-to-r from-yellow-900/30 to-orange-900/20 flex-shrink-0">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-yellow-400" />
+                    <h2 className="text-xl font-black text-yellow-400" style={{ fontFamily: 'Oswald, sans-serif' }}>
+                      RAPID FIRE TEXAS HOLD'EM — GAME RULES
+                    </h2>
+                  </div>
+                  <p className="text-gray-400 text-xs mt-0.5">Everything you need to know to play</p>
+                </div>
+                <button onClick={() => setOpen(false)} className="p-2 rounded-lg hover:bg-slate-700 text-gray-400 hover:text-white transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Current version config strip */}
+              <div className="flex flex-wrap gap-2 px-6 py-2.5 border-b border-yellow-700/20 bg-black/30">
+                <VersionBadge label="Max Hands" value={maxHands} />
+                <VersionBadge label="Max Ranks" value={maxRanks} />
+                <VersionBadge label="Rank Locks At" value={`${rankLockAt}+ hands`} />
+                <VersionBadge label="Color Rule" value={colorBothSides ? 'Red & Black' : 'One Side Only'} />
+              </div>
+
+              {/* Scrollable content */}
+              <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
+
+                <Section title="How the Game Works">
+                  <Rule label="Objective">Bet on which of the 10 hands wins the round.</Rule>
+                  <Rule label="Minimum Bet">$0.01 per betting spot.</Rule>
+                  <Rule label="Hand Selection">
+                    You may select up to <strong className="text-yellow-300">{plural(maxHands, 'card hand')}</strong> per round.
+                    Once you reach that limit, all remaining unselected hands lock automatically.
+                    You may move your bet to a locked hand by dragging your chip onto it.
+                  </Rule>
+                  <Rule label="Maximum Bet per Hand">$500 maximum bet per individual card hand.</Rule>
+                </Section>
+
+                <Section title="Unlocking Side Bets">
+                  <Rule label="Rank Board">
+                    The Rank board is available as long as you have selected fewer than <strong className="text-yellow-300">{plural(rankLockAt, 'hand')}</strong>.
+                    Once you select <strong className="text-red-400">{rankLockAt} or more hands</strong>, the Rank board locks and any existing rank bets are refunded.
+                  </Rule>
+                  <Rule label="Rank Slots">
+                    You may place up to <strong className="text-yellow-300">{plural(maxRanks, 'Rank bet')}</strong> per round.
+                  </Rule>
+                  <Rule label="Color & River">To unlock Color and River bets, your total Rank bets must match your total Hand bets.</Rule>
+                </Section>
+
+                <Section title="Snowball Caps">
+                  <p className="text-gray-400 text-xs mb-3">Your previous bets determine the ceiling for each subsequent tier.</p>
+                  <Rule label="Rank total">Cannot exceed your total Hand bets. To unlock Color and River, Rank bets must exactly equal Hand bets.</Rule>
+                  <Rule label="Color total">Cannot exceed Hand + Rank bets combined.</Rule>
+                  <Rule label="Color side">
+                    {colorBothSides
+                      ? 'You may bet on both Red AND Black in the same round.'
+                      : 'You may only bet on Red OR Black in a single round — betting one side locks the other for that round.'}
+                  </Rule>
+                  <Rule label="River total">Cannot exceed Hand + Rank + Color bets combined.</Rule>
+                </Section>
+
+                <Section title="Rank Betting — Payouts">
+                  <p className="text-gray-400 text-xs mb-3">
+                    Bet on what poker rank will win the round. It doesn't matter which hand wins — as long as the winning hand achieves the rank you bet.
+                    Odds are tied to the actual winning hand. One Pair is the minimum qualifying rank.
+                    Up to <strong className="text-yellow-300">{plural(maxRanks, 'Rank bet')}</strong> may be placed per round.
+                  </p>
+                  <div className="space-y-1.5">
+                    {RANK_BETS.map(r => (
+                      <div key={r.name} className="flex justify-between items-center bg-slate-800/60 rounded-lg px-3 py-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`font-bold text-xs ${r.color}`}>{r.name}</span>
+                          {r.note && <span className="text-gray-500 text-xs italic">{r.note}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-gray-400 text-xs mt-4 mb-2">
+                    Payout odds by card hand and rank — <span className="text-yellow-300 font-semibold">N/A</span> means that rank isn't achievable for that hand.
+                  </p>
+                  <RankPayoutMatrix />
+                </Section>
+
+                <Section title="Winning">
+                  <Rule label="Hand bets">Pay if the hand you backed forms the highest 5-card poker rank from its 7 available cards (2 pocket + 5 community) and beats all 9 other hands.</Rule>
+                  <Rule label="Rank bets">Pay if ANY hand wins the round by the rank you bet — you do not need to have bet on the winning hand. Payout odds are tied to the actual winning hand's rank table.</Rule>
+                  <Rule label="Color bets">
+                    Pay based on the <strong>exact</strong> number of Red or Black cards in the 5 community cards.
+                    3 Red wins only when exactly 3 red cards appear. 4 Red wins only when exactly 4. 5 Red wins only when exactly 5. Same applies for Black.
+                    {colorBothSides
+                      ? ' Both Red and Black bets may be placed in the same round.'
+                      : ' Only one color side may be bet per round — choosing Red locks Black and vice versa.'}
+                  </Rule>
+                  <Rule label="River (Low/High) bets">Pay based solely on the 5th community card. Low wins if the river card is 7 or below. High wins if 8 or above. Odds depend on the 4-card board state after the Turn.</Rule>
+                  <Rule label="Board Win">If the community board beats all 10 player hands, all hand bets are collected. Color Board and River bets still resolve independently.</Rule>
+                </Section>
+
+                <Section title="Card Hand Payouts" defaultOpen={false}>
+                  <p className="text-gray-400 text-xs mb-3">Each hand has fixed payout odds. Hands are listed from highest to lowest payout.</p>
+                  <div className="space-y-1.5">
+                    {FIXED_HANDS.map(h => (
+                      <div key={h.id} className="flex justify-between items-center bg-slate-800/60 rounded-lg px-3 py-1.5">
+                        <span className="text-white font-bold text-xs">{h.label}</span>
+                        <span className="text-yellow-300 font-bold text-xs">{h.payout}:1</span>
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+
+                <Section title="Color Board Payouts" defaultOpen={false}>
+                  <div className="space-y-1.5">
+                    {COLOR_BETS.map(b => (
+                      <div key={b.key} className="flex justify-between items-center bg-slate-800/60 rounded-lg px-3 py-1.5">
+                        <span className="text-white font-bold text-xs">{b.key}</span>
+                        <span className="text-yellow-300 font-bold text-xs">{b.payout}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+
+                <Section title="River Bet Payouts" defaultOpen={false}>
+                  <p className="text-gray-400 text-xs mb-3">Payouts vary based on the 4-card board state after the Turn.</p>
+                  <div className="space-y-1.5">
+                    {Object.entries(RIVER_STATE_PAYOUTS).map(([state, odds]) => (
+                      <div key={state} className="flex justify-between items-center bg-slate-800/60 rounded-lg px-3 py-1.5">
+                        <span className="text-white font-bold text-xs">{state}</span>
+                        <div className="flex gap-3">
+                          <span className="text-blue-300 text-xs">Low: {odds.LOW}:1</span>
+                          <span className="text-red-300 text-xs">High: {odds.HIGH}:1</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+
+                <Section title="Multi-Hand Payout Reduction (Bell Curve)" defaultOpen={false}>
+                  <p className="text-gray-400 text-xs mb-3">
+                    {(() => {
+                      const hr = bellCurve.handReductions;
+                      // Find how many hands are at full value (leading zeros)
+                      let fullCount = 0;
+                      for (let i = 0; i < hr.length; i++) { if (hr[i] === 0) fullCount = i + 1; else break; }
+                      // Find peak
+                      let peakIdx = 0, peakPct = 0;
+                      for (let i = 0; i < hr.length; i++) { if (hr[i] > peakPct) { peakPct = hr[i]; peakIdx = i; } }
+                      const peakHands = peakIdx + 1;
+                      const descends = peakIdx < hr.length - 1 && hr[peakIdx + 1] < peakPct;
+                      if (fullCount >= hr.length) return 'All hand counts pay at full value. No payout reduction is currently active.';
+                      const fullLabel = fullCount === 1 ? 'only 1 hand' : `1–${fullCount} hands`;
+                      return `When betting multiple hands simultaneously, payouts are adjusted. ${fullCount === 1 ? 'Only 1 hand pays full value.' : `Payouts are at full value for ${fullLabel}.`} The reduction peaks at ${peakHands} hand${peakHands !== 1 ? 's' : ''} (−${peakPct}%) to deter exploit strategies${descends ? ', then decreases for higher hand counts where the house advantage increases naturally' : ''}.`;
+                    })()}
+                  </p>
+                  <div className="mb-4">
+                    <p className="text-yellow-400 text-xs font-bold uppercase tracking-wide mb-2">Hand Bet Reductions</p>
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {bellCurve.handReductions.map((pct, i) => (
+                        <div key={i} className={`flex flex-col items-center px-2 py-2 rounded-lg border text-center
+                          ${pct === 0 ? 'border-green-600/30 bg-green-900/10' : pct >= 20 ? 'border-red-600/40 bg-red-900/10' : 'border-yellow-700/20 bg-slate-800/40'}`}>
+                          <span className="text-gray-400 text-[10px]">{HAND_LABELS_SHORT[i]} hand{i > 0 ? 's' : ''}</span>
+                          <span className={`text-sm font-bold ${pct === 0 ? 'text-green-300' : pct >= 20 ? 'text-red-300' : 'text-yellow-300'}`}>
+                            {pct === 0 ? 'Full' : `-${pct}%`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-yellow-400 text-xs font-bold uppercase tracking-wide mb-2">Rank Bet Reductions</p>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {bellCurve.rankReductions.map((pct, i) => (
+                        <div key={i} className={`flex flex-col items-center px-2 py-2 rounded-lg border text-center
+                          ${pct === 0 ? 'border-green-600/30 bg-green-900/10' : pct >= 20 ? 'border-red-600/40 bg-red-900/10' : 'border-yellow-700/20 bg-slate-800/40'}`}>
+                          <span className="text-gray-400 text-[10px]">{RANK_LABELS_SHORT[i]} rank{i > 0 ? 's' : ''}</span>
+                          <span className={`text-sm font-bold ${pct === 0 ? 'text-green-300' : pct >= 20 ? 'text-red-300' : 'text-yellow-300'}`}>
+                            {pct === 0 ? 'Full' : `-${pct}%`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-gray-500 text-[10px] mt-3 italic">
+                    These values are set by the operator via the Bell Curve tool and may vary per installation.
+                  </p>
+                </Section>
+
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}

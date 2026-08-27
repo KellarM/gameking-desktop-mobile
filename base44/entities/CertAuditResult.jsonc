@@ -1,0 +1,72 @@
+{
+  "name": "CertAuditResult",
+  "type": "object",
+  "properties": {
+    "module_id": {
+      "type": "string",
+      "description": "Module identifier: quick, presubmission, gli, full"
+    },
+    "bet_key": {
+      "type": "string",
+      "description": "Bet key e.g. hand:1, perHandRank:1:Full House, color:3R"
+    },
+    "result_json": {
+      "type": "string",
+      "description": "JSON stringified result object"
+    },
+    "progress": {
+      "type": "number",
+      "description": "Number of bets completed for this module"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "module_id",
+    "bet_key",
+    "result_json"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

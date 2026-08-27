@@ -1,0 +1,46 @@
+{
+  "name": "BellCurveConfig",
+  "type": "object",
+  "properties": {
+    "handReductions": {
+      "type": "array",
+      "description": "Payout reduction percentages for 1-10 hand bets",
+      "items": {
+        "type": "number"
+      }
+    },
+    "rankReductions": {
+      "type": "array",
+      "description": "Payout reduction percentages for 1-7 rank bets",
+      "items": {
+        "type": "number"
+      }
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "handReductions",
+    "rankReductions"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": null,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

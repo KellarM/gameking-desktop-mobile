@@ -1,0 +1,390 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* ── Mobile: prevent horizontal overflow ─────────────────────────────── */
+@media screen and (max-width: 768px) {
+  html, body {
+    overflow-x: hidden;
+  }
+}
+
+
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@keyframes rfthScrollBounce {
+  0%, 100% { transform: translate(-50%, 0); opacity: 0.85; }
+  50%      { transform: translate(-50%, 6px); opacity: 1; }
+}
+
+@keyframes dealer-marquee {
+  0%   { transform: translateX(100vw); }
+  100% { transform: translateX(-100%); }
+}
+
+@keyframes winner-flash {
+  0%, 100% { border-color: #facc15; box-shadow: 0 0 12px 2px rgba(250,204,21,0.6); }
+  50%       { border-color: #fef08a; box-shadow: 0 0 28px 8px rgba(254,240,138,0.9); }
+}
+
+.winner-flash {
+  animation: winner-flash 0.6s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════
+   LUMINOUS PATH — Board Glow System
+   ═══════════════════════════════════════════ */
+
+@property --glow-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes rotate-glow {
+  to { --glow-angle: 360deg; }
+}
+
+@keyframes light-sweep {
+  0%   { transform: translateX(-120%) skewX(-20deg); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateX(320%) skewX(-20deg); opacity: 0; }
+}
+
+@keyframes dusty-gold-pulse {
+  0%, 100% { box-shadow: 0 0 6px 1px rgba(180,130,40,0.25), inset 0 0 8px rgba(180,130,40,0.08); }
+  50%       { box-shadow: 0 0 12px 3px rgba(200,150,60,0.40), inset 0 0 14px rgba(200,150,60,0.14); }
+}
+
+@keyframes charging-pulse {
+  0%, 100% { box-shadow: 0 0 12px 3px rgba(251,191,36,0.45), inset 0 0 16px rgba(251,191,36,0.15); }
+  50%       { box-shadow: 0 0 22px 6px rgba(253,230,138,0.65), inset 0 0 24px rgba(253,230,138,0.22); }
+}
+
+@keyframes jackpot-burst {
+  0%   { box-shadow: 0 0 8px 2px rgba(251,191,36,0.6); }
+  30%  { box-shadow: 0 0 50px 20px rgba(255,255,255,0.9), 0 0 80px 30px rgba(251,191,36,0.7); }
+  70%  { box-shadow: 0 0 30px 10px rgba(255,255,255,0.6), 0 0 50px 16px rgba(251,191,36,0.5); }
+  100% { box-shadow: 0 0 18px 5px rgba(251,191,36,0.55), inset 0 0 20px rgba(251,191,36,0.18); }
+}
+
+/* State 0 — Dormant */
+.lp-dormant {
+  border-color: rgba(120, 85, 20, 0.35) !important;
+  box-shadow: none;
+  transition: box-shadow 0.5s ease, border-color 0.5s ease;
+}
+
+/* State 1 — Hand bet placed: dusty gold pulse */
+.lp-hand-placed {
+  border-color: rgba(180, 130, 40, 0.55) !important;
+  animation: dusty-gold-pulse 2.8s ease-in-out infinite;
+  transition: border-color 0.4s ease;
+}
+
+/* State 2 — Rank hover: faster charging pulse, brighter */
+.lp-rank-hover {
+  border-color: rgba(251, 191, 36, 0.75) !important;
+  animation: charging-pulse 1.2s ease-in-out infinite;
+  transition: border-color 0.25s ease;
+}
+
+/* State 3 — Rank placed: high brilliance with rotating conic border & light sweep */
+.lp-rank-placed {
+  position: relative;
+  border-color: rgba(253, 230, 138, 0.85) !important;
+  box-shadow: 0 0 18px 5px rgba(251,191,36,0.55), inset 0 0 20px rgba(251,191,36,0.18);
+  overflow: hidden;
+}
+
+.lp-rank-placed::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--glow-angle),
+    transparent 0deg,
+    rgba(253,230,138,0.12) 60deg,
+    rgba(255,255,255,0.18) 90deg,
+    rgba(253,230,138,0.12) 120deg,
+    transparent 180deg
+  );
+  animation: rotate-glow 3s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.lp-rank-placed::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.08) 30%,
+    rgba(255,255,255,0.22) 50%,
+    rgba(255,255,255,0.08) 70%,
+    transparent 100%
+  );
+  animation: light-sweep 3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Jackpot burst on river win */
+.lp-jackpot {
+  border-color: rgba(255, 255, 255, 0.95) !important;
+  animation: jackpot-burst 2.5s ease-out forwards !important;
+}
+
+/* Magnetic hover — unlocked buttons */
+.lp-magnetic {
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+.lp-magnetic:hover {
+  transform: scale(1.05) !important;
+  box-shadow: 0 0 14px 4px rgba(251,191,36,0.5) !important;
+  z-index: 5;
+}
+
+/* ═══════════════════════════════════════════
+   RED VELVET TABLE — Noise & Texture Layer
+   ═══════════════════════════════════════════ */
+
+.velvet-board {
+  background: radial-gradient(circle at center, #b30000 0%, #7a0000 60%, #3d0000 100%);
+  box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
+  position: relative;
+}
+
+.velvet-board::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: overlay;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+}
+
+/* Metallic gold border — muted (inactive slot) */
+.slot-border-dormant {
+  border-color: #8B6914 !important;
+  box-shadow:
+    0 0 0 1px #000 inset,
+    0 0 0 2px rgba(197,160,89,0.25) inset,
+    0 2px 8px rgba(0,0,0,0.6);
+}
+
+/* Metallic gold border — active (bet placed) */
+.slot-border-active {
+  border-color: #e8b84b !important;
+  box-shadow:
+    0 0 0 1px #000 inset,
+    0 0 0 2px rgba(232,184,75,0.4) inset,
+    0 0 10px 2px rgba(232,184,75,0.35),
+    0 2px 8px rgba(0,0,0,0.6);
+}
+
+/* Floating card shadow on felt */
+.card-felt-shadow {
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.7)) drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+}
+
+/* Text halo — ensures sharp readability on red velvet */
+.text-halo {
+  text-shadow: 0 0 3px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.8), 1px 0 2px rgba(0,0,0,0.8), -1px 0 2px rgba(0,0,0,0.8);
+}
+
+/* Metallic gold shimmer text */
+@keyframes gold-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.gold-shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #b8860b 0%,
+    #fde68a 25%,
+    #ffffff 40%,
+    #fde68a 55%,
+    #f59e0b 70%,
+    #fde68a 85%,
+    #b8860b 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gold-shimmer 2.5s linear infinite;
+}
+/* ── Board Color Themes ─────────────────────────────────────────── */
+
+/* RED (default — matches existing .velvet-board) */
+body.theme-red .velvet-board {
+  background: radial-gradient(circle at center, #b30000 0%, #7a0000 60%, #3d0000 100%);
+}
+
+/* BLUE */
+body.theme-blue .velvet-board {
+  background: radial-gradient(circle at center, #0d3b8c 0%, #071e52 60%, #020b2a 100%);
+}
+
+/* GREEN */
+body.theme-green .velvet-board {
+  background: radial-gradient(circle at center, #0d6e2e 0%, #074a1c 60%, #022610 100%);
+}
+/* ── No-scrollbar utility (used by mobile gear/settings dropdown) ── */
+.no-scrollbar {
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE/Edge legacy */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;               /* Chrome/Safari/WebKit */
+  width: 0;
+  height: 0;
+}
+
+/* ── Active Board Shimmer — gold light traveling along the border ──
+   Rebuilt again 2026-08-16 (2nd pass): the negative inset (-3px) used to
+   align the ring with the parent's actual border edge was being clipped
+   by the parent's own `overflow-hidden` — CSS overflow clips at the
+   PADDING box edge, so anything pushed past it (into the border's own
+   thickness) never paints. That's why the shimmer only ever showed on
+   the Card Hand grid (the one container WITHOUT overflow-hidden) and
+   never on Rank/Color/River (which all have it).
+
+   Fix: inset:0 keeps the ring fully inside the clip region, sitting
+   flush against the INNER face of the real border — still reads as
+   "tracing the border" visually, and is never clipped. ── */
+.board-shimmer-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 6;
+  padding: 3px;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+.board-shimmer-spin {
+  position: absolute;
+  inset: -60%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    transparent 60%,
+    rgba(246, 216, 96, 0.55) 72%,
+    rgba(255, 255, 255, 0.95) 82%,
+    rgba(246, 216, 96, 0.55) 92%,
+    transparent 100%
+  );
+  animation: board-shimmer-spin 3s linear infinite;
+  transform-origin: center center;
+}
+
+@keyframes board-shimmer-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

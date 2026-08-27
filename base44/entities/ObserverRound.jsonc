@@ -1,0 +1,130 @@
+{
+  "name": "ObserverRound",
+  "type": "object",
+  "properties": {
+    "session_id": {
+      "type": "string"
+    },
+    "round_number": {
+      "type": "number"
+    },
+    "community_cards": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "winner_hand_ids": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      }
+    },
+    "winning_rank": {
+      "type": "string"
+    },
+    "winning_colors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "winning_low_high": {
+      "type": "string"
+    },
+    "is_board_win": {
+      "type": "boolean"
+    },
+    "hand_bets": {
+      "type": "object"
+    },
+    "rank_bets": {
+      "type": "object"
+    },
+    "color_bets": {
+      "type": "object"
+    },
+    "low_high_bet": {
+      "type": "object"
+    },
+    "kill_switch_active": {
+      "type": "boolean"
+    },
+    "hand_bet_count": {
+      "type": "number"
+    },
+    "total_bet": {
+      "type": "number"
+    },
+    "total_payout": {
+      "type": "number"
+    },
+    "net_result": {
+      "type": "number"
+    },
+    "balance_before": {
+      "type": "number"
+    },
+    "balance_after": {
+      "type": "number"
+    },
+    "reds_count": {
+      "type": "number"
+    },
+    "blacks_count": {
+      "type": "number"
+    },
+    "river_card": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "session_id",
+    "round_number"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

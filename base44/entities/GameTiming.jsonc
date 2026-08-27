@@ -1,0 +1,78 @@
+{
+  "name": "GameTiming",
+  "type": "object",
+  "properties": {
+    "bettingClose": {
+      "type": "number",
+      "default": 14
+    },
+    "flopReveal": {
+      "type": "number",
+      "default": 8
+    },
+    "turnReveal": {
+      "type": "number",
+      "default": 2
+    },
+    "riverBetting": {
+      "type": "number",
+      "default": 14
+    },
+    "riverReveal": {
+      "type": "number",
+      "default": 5
+    },
+    "endOfRound": {
+      "type": "number",
+      "default": 14
+    },
+    "dealerMode": {
+      "type": "boolean",
+      "default": true,
+      "description": "true = Dealer Button mode (manual), false = Timing Feature mode (auto-progression)"
+    },
+    "mobileLayout": {
+      "type": "string",
+      "default": "A",
+      "description": "Mobile portrait layout variant"
+    },
+    "desktopLayout": {
+      "type": "string",
+      "default": "1",
+      "description": "Desktop layout variant (\"1\" or \"2\")"
+    },
+    "suitVariation": {
+      "type": "boolean",
+      "default": true,
+      "description": "Toggle card suit variation each round"
+    },
+    "positionRotation": {
+      "type": "boolean",
+      "default": true,
+      "description": "Toggle card position rotation each round"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000
+    }
+  },
+  "required": [],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": null,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

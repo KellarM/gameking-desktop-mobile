@@ -1,0 +1,273 @@
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Timer, X } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+
+const DEFAULT_TIMING = {
+  bettingClose: 14,
+  flopReveal: 8,
+  turnReveal: 2,
+  riverBetting: 14,
+  riverReveal: 5,
+  endOfRound: 14,
+};
+
+const TIMING_FIELDS = [
+  {
+    key: 'bettingClose',
+    label: 'Betting Close (Open-Table)',
+    description: 'Countdown from first hand bet. Clock visible to player.',
+    hasCountdown: true,
+  },
+  {
+    key: 'flopReveal',
+    label: 'Flop Reveal + Announce',
+    description: 'Background delay before moving to Turn.',
+    hasCountdown: false,
+  },
+  {
+    key: 'turnReveal',
+    label: 'Turn Reveal + Announce',
+    description: 'Background delay before River betting opens.',
+    hasCountdown: false,
+  },
+  {
+    key: 'riverBetting',
+    label: 'Optional River Bets Window',
+    description: 'Countdown for Low/High bet window. Clock visible to player.',
+    hasCountdown: true,
+  },
+  {
+    key: 'riverReveal',
+    label: 'River Reveal + Results',
+    description: 'Background delay to reveal river card and announce results.',
+    hasCountdown: false,
+  },
+  {
+    key: 'endOfRound',
+    label: 'End of Round Display + Reset',
+    description: 'Time before board clears and new round begins.',
+    hasCountdown: false,
+  },
+];
+
+export default function GameTimingModal({ isOpen, onClose, onSaved, dealerMode = true, onDealerModeChange }) {
+  const [values, setValues] = useState(DEFAULT_TIMING);
+  const [recordId, setRecordId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  // Mode toggle comes from parent (RapidFireGame) — persisted to DB on Save.
+
+  useEffect(() => {
+    if (isOpen) {
+      base44.entities.GameTiming.list().then(records => {
+        if (records && records.length > 0) {
+          const rec = records[0];
+          setRecordId(rec.id);
+          setValues({ ...DEFAULT_TIMING, ...rec });
+        } else {
+          setValues(DEFAULT_TIMING);
+        }
+      }).catch(() => {});
+    }
+  }, [isOpen]);
+
+  const handleChange = (key, val) => {
+    const num = Math.max(1, Math.min(120, Number(val) || 1));
+    setValues(prev => ({ ...prev, [key]: num }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const payload = {
+      bettingClose: values.bettingClose,
+      flopReveal: values.flopReveal,
+      turnReveal: values.turnReveal,
+      riverBetting: values.riverBetting,
+      riverReveal: values.riverReveal,
+      endOfRound: values.endOfRound,
+      dealerMode: dealerMode, // persist mode toggle to DB
+    };
+    try {
+      if (recordId) {
+        await base44.entities.GameTiming.update(recordId, payload);
+      } else {
+        const created = await base44.entities.GameTiming.create(payload);
+        setRecordId(created.id);
+      }
+      onSaved?.();
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = () => {
+    setValues(DEFAULT_TIMING);
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 z-50"
+            onClick={onClose}
+          />
+
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: -20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: -20 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+          >
+            <div
+              className="pointer-events-auto w-full max-w-md rounded-2xl border border-yellow-700/50 shadow-2xl shadow-black/80 overflow-hidden"
+              style={{ background: 'linear-gradient(160deg, #0f0f1a 0%, #1a1205 100%)' }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-yellow-700/30"
+                style={{ background: 'rgba(0,0,0,0.4)' }}>
+                {/* Left: icon + title */}
+                <div className="flex items-center gap-2.5">
+                  <Timer className="w-5 h-5 text-yellow-400" />
+                  <span className="text-yellow-300 font-black text-base tracking-wide"
+                    style={{ fontFamily: 'Oswald, sans-serif' }}>
+                    GAME TIMING
+                  </span>
+                </div>
+                {/* Center: Mode toggle — left=Timing, right=Dealer */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      onDealerModeChange?.(!dealerMode);
+                      // Immediately persist to DB so it survives refresh
+                      const payload = {
+                        bettingClose: values.bettingClose,
+                        flopReveal: values.flopReveal,
+                        turnReveal: values.turnReveal,
+                        riverBetting: values.riverBetting,
+                        riverReveal: values.riverReveal,
+                        endOfRound: values.endOfRound,
+                        dealerMode: !dealerMode,
+                      };
+                      if (recordId) {
+                        base44.entities.GameTiming.update(recordId, payload).catch(() => {});
+                      } else {
+                        base44.entities.GameTiming.create({ config_key: 'default', ...payload }).then(r => setRecordId(r.id)).catch(() => {});
+                      }
+                    }}
+                    className="relative flex items-center transition-colors"
+                    style={{
+                      width: 44, height: 22, borderRadius: 11, cursor: 'pointer',
+                      border: '1px solid rgba(202,138,4,0.5)',
+                      background: dealerMode
+                        ? 'linear-gradient(90deg, rgba(60,80,100,0.6) 0%, rgba(40,100,160,0.7) 100%)'
+                        : 'linear-gradient(90deg, rgba(100,60,0,0.6) 0%, rgba(160,100,0,0.7) 100%)',
+                    }}
+                    title={dealerMode ? 'Dealer Button mode' : 'Timing Feature mode'}
+                  >
+                    <div
+                      className="absolute rounded-full transition-all"
+                      style={{
+                        width: 16, height: 16,
+                        top: 2,
+                        left: dealerMode ? 24 : 2,
+                        background: dealerMode ? '#60a5fa' : '#fbbf24',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                      }}
+                    />
+                  </button>
+                  <span
+                    className="font-bold text-sm tracking-wide transition-colors"
+                    style={{
+                      fontFamily: 'Oswald, sans-serif',
+                      color: dealerMode ? '#60a5fa' : 'rgba(250,204,21,0.4)',
+                    }}
+                  >
+                    Dealer
+                  </span>
+                </div>
+                {/* Right: close button */}
+                <button
+                  onClick={onClose}
+                  className="text-gray-500 hover:text-white transition-colors p-1"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Inputs */}
+              <div className="px-5 py-4 space-y-3">
+                {TIMING_FIELDS.map((field, idx) => (
+                  <div key={field.key} className="flex items-start gap-3">
+                    {/* Step number */}
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full border border-yellow-700/50 bg-yellow-900/20 flex items-center justify-center mt-0.5">
+                      <span className="text-yellow-400 text-[10px] font-bold">{idx + 1}</span>
+                    </div>
+
+                    {/* Label + description */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-sm font-semibold">{field.label}</span>
+                        {field.hasCountdown && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-yellow-900/40 text-yellow-400 border border-yellow-700/40 font-bold flex-shrink-0">
+                            ⏱ CLOCK
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-gray-500 text-[11px] mt-0.5">{field.description}</p>
+                    </div>
+
+                    {/* Input */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <input
+                        type="number"
+                        min={1}
+                        max={120}
+                        value={values[field.key]}
+                        onChange={e => handleChange(field.key, e.target.value)}
+                        className="w-14 text-center text-sm font-bold rounded-lg border border-yellow-700/50 bg-black/50 text-yellow-300 py-1.5 focus:outline-none focus:border-yellow-400 transition-colors"
+                      />
+                      <span className="text-gray-500 text-xs">sec</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-t border-yellow-700/30"
+                style={{ background: 'rgba(0,0,0,0.3)' }}>
+                <button
+                  onClick={handleReset}
+                  className="px-3 py-1.5 rounded-lg border border-gray-700/60 bg-gray-800/40 text-gray-400 text-xs font-semibold hover:bg-gray-700/40 hover:text-white transition-all"
+                >
+                  Reset Defaults
+                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={onClose}
+                    className="px-3 py-1.5 rounded-lg border border-gray-700/60 bg-gray-800/40 text-gray-400 text-xs font-semibold hover:bg-gray-700/40 hover:text-white transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    className="px-4 py-1.5 rounded-lg border-2 border-yellow-500 bg-yellow-600 hover:bg-yellow-500 text-black text-xs font-black transition-all"
+                  >
+                    Save Timing
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}

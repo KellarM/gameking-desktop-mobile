@@ -1,0 +1,140 @@
+import { useState, useEffect } from 'react';
+import { GameVersions } from '@/api/entities';
+
+export const VERSIONS_STORAGE_KEY = 'rapidFireGameVersions';
+
+export const DEFAULT_VERSIONS = {
+  maxCardHands: 1,
+  maxRankSlots: 1,
+  rankLockThreshold: 1,
+  colorBothSides: false,
+};
+
+// Safe loading placeholder — used while DB fetch is in flight
+// Mirrors DEFAULT_VERSIONS so behaviour is consistent before DB responds
+export const LOADING_VERSIONS = {
+  maxCardHands: 1,
+  maxRankSlots: 1,
+  rankLockThreshold: 1,
+  colorBothSides: false,
+};
+
+function readLocal() {
+  try {
+    const saved = localStorage.getItem(VERSIONS_STORAGE_KEY);
+    return saved ? { ...DEFAULT_VERSIONS, ...JSON.parse(saved) } : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLocal(v) {
+  try {
+    localStorage.setItem(VERSIONS_STORAGE_KEY, JSON.stringify(v));
+  } catch {}
+}
+
+// Always fetches the canonical record from DB.
+// Returns { config, recordId } — recordId is the DB record id to use for updates.
+export async function loadVersionsFromDB() {
+  try {
+    const records = await GameVersions.filter({ config_key: 'default' });
+    if (records && records.length > 0) {
+      // If somehow duplicates exist, use the most recently updated one
+      const sorted = records.sort((a, b) => new Date(b.updated_date) - new Date(a.updated_date));
+      const rec = sorted[0];
+      const v = {
+        maxCardHands:      rec.maxCardHands      ?? DEFAULT_VERSIONS.maxCardHands,
+        maxRankSlots:      rec.maxRankSlots      ?? DEFAULT_VERSIONS.maxRankSlots,
+        rankLockThreshold: rec.rankLockThreshold ?? DEFAULT_VERSIONS.rankLockThreshold,
+        colorBothSides:    rec.colorBothSides    ?? DEFAULT_VERSIONS.colorBothSides,
+      };
+      writeLocal(v);
+      return { config: v, recordId: rec.id };
+    }
+  } catch (e) {
+    console.error('[GameVersions] DB load failed, using localStorage fallback:', e);
+  }
+  return { config: readLocal() || { ...DEFAULT_VERSIONS }, recordId: null };
+}
+
+// Save to DB (upsert) and localStorage.
+// Always does a fresh DB lookup if recordId is null to avoid creating duplicates.
+export async function saveVersionsToDB(v, recordId) {
+  writeLocal(v);
+  try {
+    let rid = recordId;
+
+    // If we don't have a recordId, query first to avoid duplicate creation
+    if (!rid) {
+      const existing = await GameVersions.filter({ config_key: 'default' });
+      if (existing && existing.length > 0) {
+        const sorted = existing.sort((a, b) => new Date(b.updated_date) - new Date(a.updated_date));
+        rid = sorted[0].id;
+      }
+    }
+
+    if (rid) {
+      await GameVersions.update(rid, {
+        maxCardHands:      v.maxCardHands,
+        maxRankSlots:      v.maxRankSlots,
+        rankLockThreshold: v.rankLockThreshold,
+        colorBothSides:    v.colorBothSides,
+      });
+      console.log('[GameVersions] Saved to DB:', rid, v);
+      return rid;
+    } else {
+      // No record exists at all — create one
+      const rec = await GameVersions.create({ config_key: 'default', ...v });
+      return rec.id;
+    }
+  } catch (e) {
+    console.error('[GameVersions] DB save failed — settings will NOT persist:', e);
+  }
+  return recordId;
+}
+
+export function useGameVersions() {
+  // Use localStorage if available (best case), otherwise LOADING_VERSIONS
+  // LOADING_VERSIONS has rankLockThreshold=99 so nothing locks while DB is fetching
+  const [versions, setVersions] = useState(() => readLocal() || { ...LOADING_VERSIONS });
+  const [recordId, setRecordId] = useState(null);
+  const [dbLoaded, setDbLoaded] = useState(false);
+
+  // On mount: load from DB, but DON'T overwrite localStorage if it already has a user-set value.
+  // localStorage is the most recent change on this device; DB may be stale if a previous write failed.
+  useEffect(() => {
+    loadVersionsFromDB().then(({ config, recordId: rid }) => {
+      const local = readLocal();
+      if (local) {
+        // localStorage has values — use them (most recent on this device)
+        setVersions(local);
+        setRecordId(rid);
+        setDbLoaded(true);
+        // Sync localStorage values back to DB in case DB was stale
+        if (rid && JSON.stringify(local) !== JSON.stringify(config)) {
+          saveVersionsToDB(local, rid).catch(() => {});
+        }
+        window.dispatchEvent(new CustomEvent('gameVersions:updated', { detail: local }));
+      } else {
+        // First visit — no localStorage, use DB values
+        setVersions(config);
+        setRecordId(rid);
+        setDbLoaded(true);
+        writeLocal(config);
+        window.dispatchEvent(new CustomEvent('gameVersions:updated', { detail: config }));
+      }
+    });
+  }, []);
+
+  // Listen for in-session updates (from the Versions modal save)
+  useEffect(() => {
+    function handleUpdate(e) {
+      if (e.detail) setVersions({ ...DEFAULT_VERSIONS, ...e.detail });
+    }
+    window.addEventListener('gameVersions:updated', handleUpdate);
+    return () => window.removeEventListener('gameVersions:updated', handleUpdate);
+  }, []);
+
+  return { versions, recordId, dbLoaded }; // dbLoaded=true means DB values are confirmed
+}

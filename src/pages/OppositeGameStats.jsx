@@ -1,0 +1,643 @@
+import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { computeBatch } from '@/lib/oppositeGameStatsEngine';
+import { motion } from 'framer-motion';
+import { Play, RefreshCw, FileDown, Presentation, BarChart2, ChevronDown, ChevronUp, SkipForward, Trash2 } from 'lucide-react';
+
+const STORAGE_KEY_STATE    = 'oppositeGameStats_state';
+const STORAGE_KEY_PROGRESS = 'oppositeGameStats_progress';
+
+const RANK_COLS  = ['Royal Flush','Straight Flush (no bet)','4 Of A Kind','Full House','Flush','Straight','3 Of A Kind','2 Pair','1 Pair'];
+const COLOR_COLS = ['3R','4R','5R','3B','4B','5B'];
+const HAND_LABELS = [
+  {id:'11',label:'A / 10'},
+  {id:'12',label:'K / K'},
+  {id:'13',label:'Q / J'},
+  {id:'14',label:'Q / 10'},
+  {id:'15',label:'J / 9'},
+  {id:'16',label:'8 / 6'},
+  {id:'17',label:'7 / 7'},
+  {id:'18',label:'4 / 2'},
+  {id:'19',label:'3 / 3'},
+  {id:'20',label:'A / 5'},
+];
+const TOTAL_DEALS = 201376;
+const BATCH_SIZE  = 1000;
+
+function emptyRankMatrix()  { return Object.fromEntries(RANK_COLS.map(k=>[k,0])); }
+function emptyColorMatrix() { return Object.fromEntries(COLOR_COLS.map(k=>[k,0])); }
+
+function initState() {
+  return {
+    handRankMatrix:  HAND_LABELS.map(()=>emptyRankMatrix()),
+    handColorMatrix: HAND_LABELS.map(()=>emptyColorMatrix()),
+    handWinCount:    new Array(HAND_LABELS.length).fill(0),
+    rankTotals:      emptyRankMatrix(),
+    colorTotals:     emptyColorMatrix(),
+    allRows:         [],
+  };
+}
+
+function mergeTally(state, tally) {
+  const s = state;
+  HAND_LABELS.forEach((_, i) => {
+    RANK_COLS.forEach(k  => { s.handRankMatrix[i][k]  += tally.handRankMatrix[i][k]; });
+    COLOR_COLS.forEach(k => { s.handColorMatrix[i][k] += tally.handColorMatrix[i][k]; });
+    s.handWinCount[i] += tally.handWinCount[i];
+  });
+  RANK_COLS.forEach(k  => { s.rankTotals[k]  += tally.rankTotals[k]; });
+  COLOR_COLS.forEach(k => { s.colorTotals[k] += tally.colorTotals[k]; });
+}
+
+// ── Excel export ─────────────────────────────────────────────────────────
+function buildExcelCSV(rows) {
+  const headers = [
+    'Card 1 Rank','Card 1 Suit',
+    'Card 2 Rank','Card 2 Suit',
+    'Card 3 Rank','Card 3 Suit',
+    'Card 4 Rank','Card 4 Suit',
+    'Card 5 Rank','Card 5 Suit',
+    'Winning Hand','Hand Rank',
+    ...COLOR_COLS,
+    ...HAND_LABELS.map(h=>`${h.id}(${h.label})`),
+    'ALL HANDS',
+  ];
+  const esc = v => `"${String(v ?? '').replace(/"/g,'""')}"`;
+  const lines = [headers.map(esc).join(',')];
+  for (const r of rows) {
+    lines.push([
+      r.c1r, r.c1s, r.c2r, r.c2s, r.c3r, r.c3s, r.c4r, r.c4s, r.c5r, r.c5s,
+      r.winningHand, r.handRank,
+      ...COLOR_COLS.map(k=>r[k]||0),
+      ...HAND_LABELS.map(h=>r[`${h.id}(${h.label})`]||0),
+      r['ALL HANDS']||1,
+    ].map(esc).join(','));
+  }
+  return lines.join('\r\n');
+}
+
+function downloadCSV(content, filename) {
+  const blob = new Blob(['\ufeff'+content], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── PowerPoint-style HTML → .doc export ──────────────────────────────────
+function buildMatrixDoc(state) {
+  const { handRankMatrix, handColorMatrix, handWinCount, rankTotals, colorTotals } = state;
+  const td = (v, bold=true, color='#000', bg='#fff') =>
+    `<td style="border:1px solid #aaa;padding:3px 7px;font-weight:${bold?'bold':'normal'};color:${color};background:${bg};font-size:8.5pt;">${v}</td>`;
+  const th = (v, bg='#2c3e6b', color='#fff') =>
+    `<th style="border:1px solid #888;padding:4px 7px;background:${bg};color:${color};font-size:8.5pt;">${v}</th>`;
+
+  const totalWins = handWinCount.reduce((s,v)=>s+v, 0);
+
+  const buildRankTable = (data, title, isPct) => {
+    const rows = HAND_LABELS.map((h,i) => {
+      const m = data[i];
+      return `<tr>
+        ${td(`${h.id}(${h.label})`)}
+        ${RANK_COLS.map(k=>{
+          const v = isPct ? (m[k]/totalWins*100).toFixed(4)+'%' : m[k];
+          return td(v, false);
+        }).join('')}
+        ${td(isPct ? (handWinCount[i]/totalWins*100).toFixed(4)+'%' : handWinCount[i].toLocaleString(), true, '#004080')}
+      </tr>`;
+    }).join('');
+    const totRow = `<tr style="background:#e8edff;">
+      ${td('Total Wins', true, '#000', '#e8edff')}
+      ${RANK_COLS.map(k=>{
+        const colWins = HAND_LABELS.reduce((s,_,i)=>s+(data[i][k]||0),0);
+        const v = isPct ? (colWins/totalWins*100).toFixed(4)+'%' : colWins.toLocaleString();
+        return td(v, true, '#004080', '#e8edff');
+      }).join('')}
+      ${td(isPct ? '100.0000%' : totalWins.toLocaleString(), true, '#004080', '#e8edff')}
+    </tr>`;
+    return `<h3 style="color:#1a3a7c;margin-top:20px;">${title}</h3>
+    <table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;">
+      <thead><tr>${th('Hand')}${RANK_COLS.map(k=>th(k)).join('')}${th('Total Wins')}</tr></thead>
+      <tbody>${rows}${totRow}</tbody>
+    </table>`;
+  };
+
+  const buildColorTable = (data, title, isPct) => {
+    const rows = HAND_LABELS.map((h,i) => {
+      const m = data[i];
+      const rowTotal = COLOR_COLS.reduce((s,k)=>s+m[k],0);
+      const rowTotalDisp = isPct ? (rowTotal/TOTAL_DEALS*100).toFixed(4)+'%' : rowTotal;
+      return `<tr>
+        ${td(`${h.id}(${h.label})`)}
+        ${COLOR_COLS.map(k=>{
+          const v = isPct ? (m[k]/TOTAL_DEALS*100).toFixed(4)+'%' : m[k];
+          return td(v, false, k.includes('R')?'#990000':'#003399');
+        }).join('')}
+        ${td(rowTotalDisp, true, '#004080')}
+      </tr>`;
+    }).join('');
+    const colorGrandTotal = COLOR_COLS.reduce((s,k)=>s+colorTotals[k],0);
+    const allRow = `<tr style="background:#fff8e8;">
+      ${td('All Hands', true, '#000', '#fff8e8')}
+      ${COLOR_COLS.map(k=>{
+        const v = isPct ? (colorTotals[k]/TOTAL_DEALS*100).toFixed(4)+'%' : colorTotals[k];
+        return td(v, false, k.includes('R')?'#990000':'#003399', '#fff8e8');
+      }).join('')}
+      ${td(isPct ? (colorGrandTotal/TOTAL_DEALS*100).toFixed(4)+'%' : colorGrandTotal, true, '#004080', '#fff8e8')}
+    </tr>`;
+    const totRow = `<tr style="background:#ffe8cc;">
+      ${td('Totals', true, '#000', '#ffe8cc')}
+      ${COLOR_COLS.map(k=>{
+        const v = isPct ? (colorTotals[k]/TOTAL_DEALS*100).toFixed(4)+'%' : colorTotals[k];
+        return td(v, true, k.includes('R')?'#990000':'#003399', '#ffe8cc')}
+      ).join('')}
+      ${td(isPct ? (colorGrandTotal/TOTAL_DEALS*100).toFixed(4)+'%' : colorGrandTotal, true, '#004080', '#ffe8cc')}
+    </tr>`;
+    return `<h3 style="color:#1a3a7c;margin-top:20px;">${title}</h3>
+    <table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;">
+      <thead><tr>${th('Hand')}${COLOR_COLS.map(k=>th(k, k.includes('R')?'#8b0000':'#003070')).join('')}${th('Totals')}</tr></thead>
+      <tbody>${rows}${allRow}${totRow}</tbody>
+    </table>`;
+  };
+
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office">
+  <head><meta charset="utf-8"><title>Opposite Hands Matrix</title></head>
+  <body style="font-family:Arial,sans-serif;margin:20px;">
+    <div style="background:#1a3a7c;color:white;padding:16px 20px;border-radius:6px;margin-bottom:20px;">
+      <h1 style="margin:0;font-size:18pt;">Rapid Fire Texas 10 — Opposite Hands Matrix</h1>
+      <p style="margin:6px 0 0;font-size:9pt;opacity:0.8;">Total Deals: ${TOTAL_DEALS.toLocaleString()} | Generated: ${new Date().toLocaleString()}</p>
+    </div>
+    <h2 style="color:#1a3a7c;border-bottom:2px solid #1a3a7c;padding-bottom:4px;">Hand Rank Matrix</h2>
+    ${buildRankTable(handRankMatrix, 'Counts — Winning Hand vs Hand Rank', false)}
+    ${buildRankTable(handRankMatrix, 'Percentages — Winning Hand vs Hand Rank', true)}
+    <div style="page-break-before:always;"></div>
+    <h2 style="color:#7c2200;border-bottom:2px solid #7c2200;padding-bottom:4px;margin-top:20px;">Color Board Matrix</h2>
+    ${buildColorTable(handColorMatrix, 'Counts — Winning Hand vs Color Board', false)}
+    ${buildColorTable(handColorMatrix, 'Percentages — Winning Hand vs Color Board', true)}
+  </body></html>`;
+
+  const blob = new Blob(['\ufeff', html], { type:'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'Opposite Hands Matrix.doc'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Table 1: Carded Hand Winners ──
+function CardedHandWinnersTable({ title, handRankMatrix, handWinCount, isPct, accent, totalWins }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="bg-slate-800/60 border border-slate-700 rounded-xl overflow-hidden">
+      <button onClick={()=>setOpen(o=>!o)} className="w-full flex items-center justify-between px-5 py-3 border-b border-slate-700">
+        <span className={`font-bold text-sm ${accent}`}>{title}</span>
+        {open ? <ChevronUp className="w-4 h-4 text-gray-400"/> : <ChevronDown className="w-4 h-4 text-gray-400"/>}
+      </button>
+      {open && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-slate-900/60 text-gray-300 border-b border-slate-600">
+                <th className="px-3 py-2 text-left font-bold">Hand</th>
+                {RANK_COLS.map(c=><th key={c} className="px-3 py-2 text-right font-bold">{c}</th>)}
+                <th className="px-3 py-2 text-right font-bold text-blue-300">Total Wins</th>
+              </tr>
+            </thead>
+            <tbody>
+              {HAND_LABELS.map((hand, i) => {
+                const m = handRankMatrix[i];
+                const rowWins = handWinCount[i];
+                return (
+                  <tr key={hand.id} className="border-b border-slate-700/40 hover:bg-slate-700/20">
+                    <td className="px-3 py-1.5 font-semibold text-white whitespace-nowrap">{hand.id}({hand.label})</td>
+                    {RANK_COLS.map(k=>(
+                      <td key={k} className="px-3 py-1.5 text-right text-gray-300">
+                        {isPct ? ((m[k]||0)/totalWins*100).toFixed(4)+'%' : (m[k]||0)}
+                      </td>
+                    ))}
+                    <td className="px-3 py-1.5 text-right font-bold text-blue-300">
+                      {isPct ? (rowWins/totalWins*100).toFixed(4)+'%' : rowWins.toLocaleString()}
+                    </td>
+                  </tr>
+                );
+              })}
+              <tr className="border-b border-slate-600 bg-slate-700/30">
+                <td className="px-3 py-1.5 font-bold text-yellow-300">Total Wins</td>
+                {RANK_COLS.map(k=>{
+                  const colWins = HAND_LABELS.reduce((s,_,i)=>s+(handRankMatrix[i][k]||0),0);
+                  return (
+                    <td key={k} className="px-3 py-1.5 text-right text-gray-200">
+                      {isPct ? (colWins/totalWins*100).toFixed(4)+'%' : colWins}
+                    </td>
+                  );
+                })}
+                <td className="px-3 py-1.5 text-right font-bold text-yellow-300">
+                  {isPct ? '100.0000%' : totalWins.toLocaleString()}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Table 2: Hand Rank transposed ──
+function HandRankTransposedTable({ title, handRankMatrix, handWinCount, isPct, accent, totalWins }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="bg-slate-800/60 border border-slate-700 rounded-xl overflow-hidden">
+      <button onClick={()=>setOpen(o=>!o)} className="w-full flex items-center justify-between px-5 py-3 border-b border-slate-700">
+        <span className={`font-bold text-sm ${accent}`}>{title}</span>
+        {open ? <ChevronUp className="w-4 h-4 text-gray-400"/> : <ChevronDown className="w-4 h-4 text-gray-400"/>}
+      </button>
+      {open && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-slate-900/60 text-gray-300 border-b border-slate-600">
+                <th className="px-3 py-2 text-left font-bold">Hand Rank</th>
+                {HAND_LABELS.map(h=><th key={h.id} className="px-3 py-2 text-right font-bold">{h.id}({h.label})</th>)}
+                <th className="px-3 py-2 text-right font-bold text-blue-300">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {RANK_COLS.map(rank => {
+                const rowTotal = HAND_LABELS.reduce((s,_,i)=>s+(handRankMatrix[i][rank]||0), 0);
+                return (
+                  <tr key={rank} className="border-b border-slate-700/40 hover:bg-slate-700/20">
+                    <td className="px-3 py-1.5 font-semibold text-white whitespace-nowrap">{rank}</td>
+                    {HAND_LABELS.map((_,i)=>(
+                      <td key={i} className="px-3 py-1.5 text-right text-gray-300">
+                        {isPct ? ((handRankMatrix[i][rank]||0)/totalWins*100).toFixed(4)+'%' : (handRankMatrix[i][rank]||0)}
+                      </td>
+                    ))}
+                    <td className="px-3 py-1.5 text-right font-bold text-blue-300">
+                      {isPct ? (rowTotal/totalWins*100).toFixed(4)+'%' : rowTotal.toLocaleString()}
+                    </td>
+                  </tr>
+                );
+              })}
+              <tr className="border-b border-slate-600 bg-slate-700/30">
+                <td className="px-3 py-1.5 font-bold text-yellow-300">Total Wins</td>
+                {HAND_LABELS.map((_,i)=>(
+                  <td key={i} className="px-3 py-1.5 text-right text-gray-200">
+                    {isPct ? (handWinCount[i]/totalWins*100).toFixed(4)+'%' : handWinCount[i].toLocaleString()}
+                  </td>
+                ))}
+                <td className="px-3 py-1.5 text-right font-bold text-yellow-300">
+                  {isPct ? '100.0000%' : totalWins.toLocaleString()}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Color matrix ──
+function ColorMatrixTable({ title, handColorMatrix, colorTotals, isPct, accent }) {
+  const [open, setOpen] = useState(true);
+  const grandTotal = COLOR_COLS.reduce((s,k)=>s+(colorTotals[k]||0),0);
+  return (
+    <div className="bg-slate-800/60 border border-slate-700 rounded-xl overflow-hidden">
+      <button onClick={()=>setOpen(o=>!o)} className="w-full flex items-center justify-between px-5 py-3 border-b border-slate-700">
+        <span className={`font-bold text-sm ${accent}`}>{title}</span>
+        {open ? <ChevronUp className="w-4 h-4 text-gray-400"/> : <ChevronDown className="w-4 h-4 text-gray-400"/>}
+      </button>
+      {open && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-slate-900/60 text-gray-300 border-b border-slate-600">
+                <th className="px-3 py-2 text-left font-bold">Hand</th>
+                {COLOR_COLS.map(c=><th key={c} className={`px-3 py-2 text-right font-bold ${c.includes('R')?'text-red-300':'text-blue-300'}`}>{c}</th>)}
+                <th className="px-3 py-2 text-right font-bold text-blue-300">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {HAND_LABELS.map((hand,i) => {
+                const m = handColorMatrix[i];
+                const rowTotal = COLOR_COLS.reduce((s,k)=>s+(m[k]||0),0);
+                return (
+                  <tr key={hand.id} className="border-b border-slate-700/40 hover:bg-slate-700/20">
+                    <td className="px-3 py-1.5 font-semibold text-white whitespace-nowrap">{hand.id}({hand.label})</td>
+                    {COLOR_COLS.map(k=>(
+                      <td key={k} className="px-3 py-1.5 text-right text-gray-300">
+                        {isPct ? ((m[k]||0)/TOTAL_DEALS*100).toFixed(4)+'%' : (m[k]||0)}
+                      </td>
+                    ))}
+                    <td className="px-3 py-1.5 text-right font-bold text-blue-300">
+                      {isPct ? (rowTotal/TOTAL_DEALS*100).toFixed(4)+'%' : rowTotal}
+                    </td>
+                  </tr>
+                );
+              })}
+              <tr className="border-b border-slate-600 bg-slate-700/30">
+                <td className="px-3 py-1.5 font-bold text-yellow-300">All Hands</td>
+                {COLOR_COLS.map(k=>(
+                  <td key={k} className="px-3 py-1.5 text-right text-gray-200">
+                    {isPct ? ((colorTotals[k]||0)/TOTAL_DEALS*100).toFixed(4)+'%' : (colorTotals[k]||0)}
+                  </td>
+                ))}
+                <td className="px-3 py-1.5 text-right font-bold text-yellow-300">
+                  {isPct ? (grandTotal/TOTAL_DEALS*100).toFixed(4)+'%' : grandTotal}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Helpers to save/load state from localStorage ──────────────────────────
+function saveToStorage(s, prog) {
+  try {
+    const toSave = { handRankMatrix: s.handRankMatrix, handColorMatrix: s.handColorMatrix, handWinCount: s.handWinCount, rankTotals: s.rankTotals, colorTotals: s.colorTotals };
+    localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(toSave));
+    localStorage.setItem(STORAGE_KEY_PROGRESS, String(prog));
+  } catch {}
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_STATE);
+    const prog = parseInt(localStorage.getItem(STORAGE_KEY_PROGRESS) || '0');
+    if (!raw || !prog) return null;
+    const parsed = JSON.parse(raw);
+    return { state: { ...parsed, allRows: [] }, progress: prog };
+  } catch { return null; }
+}
+
+function clearStorage() {
+  localStorage.removeItem(STORAGE_KEY_STATE);
+  localStorage.removeItem(STORAGE_KEY_PROGRESS);
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────
+export default function OppositeGameStats() {
+  const [running, setRunning]     = useState(false);
+  const [progress, setProgress]   = useState(0);
+  const [state, setState]         = useState(null);
+  const [error, setError]         = useState(null);
+  const [savedProgress, setSavedProgress] = useState(0);
+  const abortRef                  = useRef(false);
+
+  useEffect(() => {
+    const saved = loadFromStorage();
+    if (saved) {
+      setState(saved.state);
+      setProgress(saved.progress);
+      setSavedProgress(saved.progress);
+    }
+  }, []);
+
+  const pct = Math.round((progress / TOTAL_DEALS) * 100);
+  const done = state && progress >= TOTAL_DEALS;
+  const canContinue = !running && savedProgress > 0 && savedProgress < TOTAL_DEALS;
+
+  const runFrom = async (startBatch, existingState) => {
+    setRunning(true);
+    setError(null);
+    abortRef.current = false;
+    const s = existingState ? { ...existingState, allRows: existingState.allRows || [] } : initState();
+    let batchStart = startBatch;
+
+    while (batchStart < TOTAL_DEALS) {
+      if (abortRef.current) break;
+      try {
+        const d = computeBatch(batchStart, BATCH_SIZE);
+        mergeTally(s, d.tally);
+        s.allRows.push(...d.rows);
+        batchStart = d.batchEnd;
+        setProgress(batchStart);
+        setSavedProgress(batchStart);
+        saveToStorage(s, batchStart);
+        setState({ ...s, handRankMatrix: s.handRankMatrix.map(m=>({...m})), handColorMatrix: s.handColorMatrix.map(m=>({...m})), handWinCount: [...s.handWinCount], rankTotals: {...s.rankTotals}, colorTotals: {...s.colorTotals}, allRows: [...s.allRows] });
+        await new Promise(r => setTimeout(r, 0));
+      } catch(e) {
+        setError(`Paused at deal ${batchStart.toLocaleString()} — ${e.message}. Use "Continue" to resume.`);
+        break;
+      }
+    }
+    setRunning(false);
+  };
+
+  const run = () => {
+    clearStorage();
+    setSavedProgress(0);
+    setProgress(0);
+    setState(null);
+    runFrom(0, null);
+  };
+
+  const continueRun = () => {
+    const saved = loadFromStorage();
+    if (saved) runFrom(saved.progress, saved.state);
+  };
+
+  const clearAll = () => {
+    clearStorage();
+    setSavedProgress(0);
+    setProgress(0);
+    setState(null);
+    setError(null);
+  };
+
+  const exportExcel = () => {
+    if (!state?.allRows?.length) return;
+    const csv = buildExcelCSV(state.allRows);
+    downloadCSV(csv, 'Opposite Hands In Play Identification.csv');
+  };
+
+  const exportMatrix = () => {
+    if (!state) return;
+    buildMatrixDoc(state);
+  };
+
+  const totalWins = state ? state.handWinCount.reduce((s,v)=>s+v,0) : 0;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-white p-4 pb-16">
+      <div className="max-w-6xl mx-auto">
+
+        {/* Header */}
+        <div className="mb-6">
+          <Link to="/" className="text-blue-400 hover:text-blue-300 text-sm mb-3 inline-block">← Back to Game</Link>
+          <div className="flex items-center gap-3 mb-1">
+            <BarChart2 className="w-8 h-8 text-yellow-400" />
+            <h1 className="text-3xl font-bold">Opposite Game Stats</h1>
+          </div>
+          <p className="text-gray-400 text-sm">
+            Complete enumeration of all {TOTAL_DEALS.toLocaleString()} possible 5-card community deal combinations from the opposite 32-card deck
+            (Hearts ↔ Spades, Diamonds ↔ Clubs), using carded hands 11–20. Identifies winning hand, hand rank, and color board outcome for every deal.
+          </p>
+        </div>
+
+        {/* Controls */}
+        <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-5 mb-6">
+          <div className="flex flex-wrap gap-3 items-center">
+            <button
+              onClick={run}
+              disabled={running}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-green-600 hover:bg-green-500 disabled:bg-slate-700 disabled:text-gray-500 font-bold text-sm transition-all"
+            >
+              {running ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Play className="w-4 h-4"/>}
+              {running ? 'Computing...' : done ? 'Re-Run (Fresh)' : 'Run Full Computation'}
+            </button>
+
+            {canContinue && (
+              <button
+                onClick={continueRun}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-yellow-600 hover:bg-yellow-500 font-bold text-sm transition-all"
+              >
+                <SkipForward className="w-4 h-4"/> Continue ({savedProgress.toLocaleString()} / {TOTAL_DEALS.toLocaleString()} saved)
+              </button>
+            )}
+
+            {running && (
+              <button
+                onClick={()=>{ abortRef.current = true; }}
+                className="text-red-400 border border-red-700 px-4 py-2 rounded-lg text-sm hover:bg-red-900/20"
+              >
+                Abort
+              </button>
+            )}
+
+            {!running && state && !done && (
+              <button
+                onClick={clearAll}
+                className="flex items-center gap-1.5 text-gray-500 border border-slate-600 px-3 py-2 rounded-lg text-sm hover:text-red-400 hover:border-red-700 transition-all"
+              >
+                <Trash2 className="w-3.5 h-3.5"/> Clear
+              </button>
+            )}
+
+            {done && (
+              <>
+                <button
+                  onClick={exportExcel}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-green-600 text-green-300 hover:bg-green-900/30 font-bold text-sm transition-all"
+                >
+                  <FileDown className="w-4 h-4"/> Export Excel — Hands In Play Identification
+                </button>
+                <button
+                  onClick={exportMatrix}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-purple-600 text-purple-300 hover:bg-purple-900/30 font-bold text-sm transition-all"
+                >
+                  <Presentation className="w-4 h-4"/> Export Word — Hands Matrix
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Progress */}
+          {(running || progress > 0) && (
+            <div className="mt-4">
+              <div className="flex justify-between text-xs text-gray-400 mb-1">
+                <span>
+                  {done ? `✓ Complete — ${TOTAL_DEALS.toLocaleString()} deals computed` 
+                    : running ? `Computing... ${progress.toLocaleString()} / ${TOTAL_DEALS.toLocaleString()} deals`
+                    : `⚡ Paused — ${progress.toLocaleString()} / ${TOTAL_DEALS.toLocaleString()} deals saved`}
+                </span>
+                <span>{pct}%</span>
+              </div>
+              <div className="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
+                <motion.div
+                  className={`h-2 rounded-full ${done ? 'bg-yellow-500' : 'bg-green-500'}`}
+                  animate={{ width: `${pct}%` }}
+                  transition={{ ease:'linear', duration:0.3 }}
+                />
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-3 bg-orange-900/20 border border-orange-700 rounded-lg px-4 py-2">
+              <p className="text-orange-300 text-sm">{error}</p>
+              {canContinue && <p className="text-yellow-400 text-xs mt-1 font-semibold">↑ Click "Continue" above to resume from where it stopped.</p>}
+            </div>
+          )}
+        </div>
+
+        {/* Summary stats */}
+        {state && (() => {
+          const totalWins = state.handWinCount.reduce((s,v)=>s+v,0);
+          return (
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center gap-3 text-xs text-gray-400 bg-slate-800/40 border border-slate-700 rounded-lg px-4 py-2">
+                <span className="text-yellow-300 font-bold">Note:</span>
+                Ties are counted for every winning hand. Total hand wins ({totalWins.toLocaleString()}) exceed total deals ({TOTAL_DEALS.toLocaleString()}) because {(totalWins-TOTAL_DEALS).toLocaleString()} deals had shared winners.
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {HAND_LABELS.map((h,i)=>(
+                  <div key={h.id} className="bg-slate-800/60 border border-slate-700 rounded-xl p-3 text-center">
+                    <p className="text-yellow-400 font-bold text-sm">{h.id}({h.label})</p>
+                    <p className="text-2xl font-black text-white">{state.handWinCount[i].toLocaleString()}</p>
+                    <p className="text-gray-400 text-xs">{((state.handWinCount[i]/totalWins)*100).toFixed(2)}% of wins</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Rank Matrices */}
+        {state && (
+          <div className="space-y-4">
+            <CardedHandWinnersTable
+              title={`Carded Hand Winners — Counts  |  ${TOTAL_DEALS.toLocaleString()} Total Deals = ${totalWins.toLocaleString()} Total Wins`}
+              handRankMatrix={state.handRankMatrix}
+              handWinCount={state.handWinCount}
+              isPct={false}
+              accent="text-purple-400"
+              totalWins={totalWins}
+            />
+            <CardedHandWinnersTable
+              title="Carded Hand Winners — Percentages (% of Total Wins)"
+              handRankMatrix={state.handRankMatrix}
+              handWinCount={state.handWinCount}
+              isPct={true}
+              accent="text-purple-300"
+              totalWins={totalWins}
+            />
+            <HandRankTransposedTable
+              title={`Hand Rank Matrix — Counts  |  Ranks (vertical) × Hands (horizontal)  |  Total Wins: ${totalWins.toLocaleString()}`}
+              handRankMatrix={state.handRankMatrix}
+              handWinCount={state.handWinCount}
+              isPct={false}
+              accent="text-yellow-400"
+              totalWins={totalWins}
+            />
+            <HandRankTransposedTable
+              title="Hand Rank Matrix — Percentages (% of Total Wins)"
+              handRankMatrix={state.handRankMatrix}
+              handWinCount={state.handWinCount}
+              isPct={true}
+              accent="text-yellow-300"
+              totalWins={totalWins}
+            />
+            <ColorMatrixTable
+              title="Color Board Matrix — Counts (Winning Hand vs Color Result)"
+              handColorMatrix={state.handColorMatrix}
+              colorTotals={state.colorTotals}
+              isPct={false}
+              accent="text-red-400"
+            />
+            <ColorMatrixTable
+              title="Color Board Matrix — Percentages (% of total deals)"
+              handColorMatrix={state.handColorMatrix}
+              colorTotals={state.colorTotals}
+              isPct={true}
+              accent="text-red-300"
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
