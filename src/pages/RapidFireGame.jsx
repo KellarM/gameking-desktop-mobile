@@ -26,7 +26,7 @@ import Chip from '@/components/game/Chip';
 import PlayerSeat from '@/components/game/PlayerSeat';
 import PlayerStatsPanel from '@/components/game/PlayerStatsPanel';
 import ToolsMenu from '@/components/game/ToolsMenu';
-import ControlPanel, { getControlSettings } from '@/components/game/ControlPanel';
+import ControlPanel from '@/components/game/ControlPanel';
 import GameRulesModal from '@/components/game/GameRulesModal';
 import DetailedPayoutDisplay from '@/components/game/DetailedPayoutDisplay';
 import HandBetLimitAlert from '@/components/game/HandBetLimitAlert';
@@ -213,6 +213,13 @@ export default function RapidFireGame() {
 
   // Game timing
   const { timing, dealerMode, setDealerMode, mobileLayout, setMobileLayout, desktopLayout, setDesktopLayout, suitVariation, setSuitVariation, positionRotation, setPositionRotation, startTimer, stopTimer, reloadTiming } = useGameTiming();
+
+  // Control locks (Suit Variation / Position Rotation) come from the shared settings record.
+  // Refs so round setup always reads the current, persisted value.
+  const suitVariationRef = useRef(suitVariation);
+  const positionRotationRef = useRef(positionRotation);
+  useEffect(() => { suitVariationRef.current = suitVariation; }, [suitVariation]);
+  useEffect(() => { positionRotationRef.current = positionRotation; }, [positionRotation]);
 
   // ── Mode: true (default) = Dealer Button, false = Timing Feature ──────────
   // Dealer mode = current live behaviour (player-controlled via DealerButton).
@@ -1618,8 +1625,7 @@ function BoardShimmer({ isActive }) {
     setRoundId((r) => {
       const next = r + 1;
       // Switch deck set — only if suit variation is enabled in Control settings
-      const ctrlSettings = getControlSettings();
-      if (ctrlSettings.suitVariation) {
+      if (suitVariationRef.current) {
         setActiveDeckSet(next % 2 === 0 ? 1 : 0);
       } else {
         setActiveDeckSet(0); // locked to Original deck
@@ -1631,8 +1637,7 @@ function BoardShimmer({ isActive }) {
     setGamePhase('betting');
     setActivePlayer(0);
     // Shuffle hand display order — only if position rotation is enabled in Control settings
-    const ctrlSettings2 = getControlSettings();
-    if (ctrlSettings2.positionRotation) {
+    if (positionRotationRef.current) {
       setHandDisplayOrder(() => {
         const ids = [1,2,3,4,5,6,7,8,9,10];
         const buf = new Uint32Array(1);
