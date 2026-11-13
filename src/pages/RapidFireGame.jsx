@@ -76,6 +76,9 @@ const DEFAULT_CHIP = 0.01;
 const PLAYER_COUNT_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 const MIN_BET = 0.01;
+// Betting-phase snapshot — a round only reaches the DB on DEAL, so bets placed
+// before that live here and are put back after a refresh.
+const BETTING_SNAPSHOT_KEY = 'rfth_betting_snapshot';
 
 const LOGO_URLS = {
   red:   'https://media.base44.com/images/public/69f3a45ad82dff5b772d4de2/2667063a3_image.png',
@@ -470,6 +473,50 @@ export default function RapidFireGame() {
     const gameState = { roundId, casinoProfit, roundsPlayed };
     localStorage.setItem('rapidFireGameState', JSON.stringify(gameState));
   }, [roundId, casinoProfit, roundsPlayed]);
+
+  // ── Betting-phase snapshot ───────────────────────────────────────────────
+  // Restore bets placed before the DEAL (the only point a round is written to
+  // the DB). Waits for the incomplete-round check so a dealt round always wins.
+  const bettingRestoreDone = useRef(false);
+  useEffect(() => {
+    if (bettingRestoreDone.current || recoveryChecking || incompleteRound) return;
+    bettingRestoreDone.current = true;
+    let snap = null;
+    try {
+      const raw = localStorage.getItem(BETTING_SNAPSHOT_KEY);
+      snap = raw ? JSON.parse(raw) : null;
+    } catch { snap = null; }
+    if (!snap) return;
+    setHandBets(snap.handBets || {});
+    setRankBets(snap.rankBets || {});
+    setRedBlackBets(snap.redBlackBets || {});
+    setLowHighBets(snap.lowHighBets || {});
+    if (typeof snap.activePlayer === 'number') setActivePlayer(snap.activePlayer);
+    if (Array.isArray(snap.handDisplayOrder) && snap.handDisplayOrder.length === 10) {
+      setHandDisplayOrder(snap.handDisplayOrder);
+    }
+    setGamePhase('betting');
+    setDealerMessage('Bets restored after refresh — continue or press DEAL.');
+  }, [recoveryChecking, incompleteRound]);
+
+  // Save (or clear) the snapshot as bets change during the betting phase.
+  useEffect(() => {
+    if (!bettingRestoreDone.current) return;
+    const hasBets =
+      Object.keys(handBets).length > 0 ||
+      Object.keys(rankBets).length > 0 ||
+      Object.keys(redBlackBets).length > 0 ||
+      Object.values(lowHighBets || {}).some((b) => b && b.amount > 0);
+    try {
+      if (gamePhase !== 'betting' || !hasBets) {
+        localStorage.removeItem(BETTING_SNAPSHOT_KEY);
+        return;
+      }
+      localStorage.setItem(BETTING_SNAPSHOT_KEY, JSON.stringify({
+        handBets, rankBets, redBlackBets, lowHighBets, activePlayer, handDisplayOrder,
+      }));
+    } catch {}
+  }, [gamePhase, handBets, rankBets, redBlackBets, lowHighBets, activePlayer, handDisplayOrder]);
 
   // Active player helpers
   const pid = activePlayer;
