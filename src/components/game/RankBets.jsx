@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
 import Chip from './Chip';
 import { getRankOddsRange } from '@/lib/perHandRankPayouts';
+import formatMoney from '@/lib/money';
 
 export const RANK_BET_OPTIONS = [
   { key: 'Four of a Kind',  label: '4 Of A Kind'  },
@@ -319,7 +320,7 @@ export default function RankBets({
             className="px-2 py-0.5 rounded-full text-[10px] font-black whitespace-nowrap pointer-events-none"
             style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(234,179,8,0.5)', color: '#fbbf24' }}
           >
-            Match Cap: ${matchCapRemaining.toLocaleString()}
+            Match Cap: ${formatMoney(matchCapRemaining)}
           </span>
         )}
       </div>

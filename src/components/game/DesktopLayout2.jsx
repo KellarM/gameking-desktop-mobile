@@ -6,6 +6,7 @@ import FixedHandCard from './FixedHandCard';
 import CountdownClock from './CountdownClock';
 import ToolsMenu from './ToolsMenu';
 import Chip from './Chip';
+import formatMoney from '@/lib/money';
 import DealerButton from './DealerButton';
 import OnboardingIndicator from './OnboardingIndicator';
 import GearMenu from './GearMenu';
@@ -201,7 +202,7 @@ function MatchCapBadge({ amount }) {
         background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(234,179,8,0.5)', color: '#fbbf24',
       }}
     >
-      Match Cap: ${amount.toLocaleString()}
+      Match Cap: ${formatMoney(amount)}
     </div>
   );
 }

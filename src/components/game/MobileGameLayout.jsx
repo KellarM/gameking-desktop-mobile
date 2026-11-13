@@ -4,6 +4,7 @@ import HistoryRail from './HistoryRail';
 import { evaluateBestHand, FIXED_HANDS, getTotalHandBets, getTotalRankBets, getTotalColorBets, cardColor } from '@/lib/gameEngine';
 import { HAND_RANK_PAYOUTS, COLOR_BOARD_PAYOUTS, LOW_HIGH_PAYOUT, RIVER_STATE_PAYOUTS } from '@/lib/payoutConstants';
 import { getRankOddsRange } from '@/lib/perHandRankPayouts';
+import formatMoney from '@/lib/money';
 import CommunityCards from './CommunityCards';
 import RankBets, { RANK_BET_OPTIONS } from './RankBets';
 import SideBets from './SideBets';
@@ -212,7 +213,7 @@ function RankStripD({
         </span>
         {!noHandBets && !killSwitchActive && (
           <span style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(234,179,8,0.5)', color: '#fbbf24', fontSize: '0.5rem', fontWeight: 900, padding: '1px 6px', borderRadius: 999, whiteSpace: 'nowrap' }}>
-            Match Cap: ${matchCapRemaining.toLocaleString()}
+            Match Cap: ${formatMoney(matchCapRemaining)}
           </span>
         )}
       </div>
@@ -361,7 +362,7 @@ function ColorStripD({
         </span>
         {!colorLocked && (
           <span style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(234,179,8,0.5)', color: '#fbbf24', fontSize: '0.5rem', fontWeight: 900, padding: '1px 6px', borderRadius: 999, whiteSpace: 'nowrap' }}>
-            Match Cap: ${colorCap.toLocaleString()}
+            Match Cap: ${formatMoney(colorCap)}
           </span>
         )}
       </div>
@@ -506,7 +507,7 @@ function RiverStripD({
         </span>
         {riverBoardOpen && (
           <span style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(234,179,8,0.5)', color: '#fbbf24', fontSize: '0.5rem', fontWeight: 900, padding: '1px 6px', borderRadius: 999, whiteSpace: 'nowrap' }}>
-            Match Cap: ${riverCap.toLocaleString()}
+            Match Cap: ${formatMoney(riverCap)}
           </span>
         )}
       </div>

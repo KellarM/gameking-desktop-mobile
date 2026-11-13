@@ -3,6 +3,7 @@ import { cardColor } from '@/lib/gameEngine';
 import { COLOR_BOARD_PAYOUTS, LOW_HIGH_PAYOUT, RIVER_STATE_PAYOUTS } from '@/lib/payoutConstants';
 import { EnergyArcOverlay } from './GreedEngine';
 import Chip from './Chip';
+import formatMoney from '@/lib/money';
 
 const RED_OPTIONS   = [
   { key: '3R', number: '3', payout: `${COLOR_BOARD_PAYOUTS['3R']}:1` },
@@ -319,7 +320,7 @@ export default function SideBets({
                 className="px-2 py-0.5 rounded-full text-[10px] font-black whitespace-nowrap pointer-events-none"
                 style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(234,179,8,0.5)', color: '#fbbf24' }}
               >
-                Match Cap: ${colorCap.toLocaleString()}
+                Match Cap: ${formatMoney(colorCap)}
               </span>
             )}
           </div>
@@ -414,7 +415,7 @@ export default function SideBets({
                 className="px-2 py-0.5 rounded-full text-[10px] font-black whitespace-nowrap pointer-events-none"
                 style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(234,179,8,0.5)', color: '#fbbf24' }}
               >
-                Match Cap: ${riverCap.toLocaleString()}
+                Match Cap: ${formatMoney(riverCap)}
               </span>
             )}
           </div>
