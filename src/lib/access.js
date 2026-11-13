@@ -7,14 +7,19 @@
 
 const STORAGE_KEY = 'xfh_entry_pass_v1';
 
+// Held in sessionStorage rather than localStorage, so the pass dies with the tab.
+// Every fresh visit to the link meets the cover page again; a refresh inside the
+// tab being played does not, which matters because the game reloads its own route
+// and nobody should lose their place mid-hand.
+
 export function readPass() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const pass = JSON.parse(raw);
     if (!pass?.token || !pass?.expires) return null;
     if (new Date(pass.expires).getTime() <= Date.now()) {
-      localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(STORAGE_KEY);
       return null;
     }
     return pass;
@@ -25,16 +30,16 @@ export function readPass() {
 
 export function savePass(pass) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(pass));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(pass));
   } catch {
-    // Storage blocked (private browsing): the pass simply won't survive a refresh.
+    // Storage blocked: the pass simply won't survive a refresh.
   }
   return pass;
 }
 
 export function clearPass() {
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(STORAGE_KEY);
   } catch {
     // nothing to clear
   }
