@@ -483,7 +483,7 @@ export default function DesktopLayout2({
               </div>
             )}
             {/* Betting closed — diagonal stamp over the card board */}
-            <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="1.05rem" />
+            <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="1.6rem" />
             <div className="grid grid-cols-5 gap-x-1.5 gap-y-1.5 h-full auto-rows-fr">
               {handDisplayOrder.map((hid) => {
                 const hand = FIXED_HANDS.find(h => h.id === hid);

@@ -4,7 +4,7 @@
 export default function BoardClosedWatermark({
   active,
   label = 'Betting Closed',
-  fontSize = '0.7rem',
+  fontSize = '1.1rem',
 }) {
   if (!active) return null;
   return (
@@ -22,10 +22,13 @@ export default function BoardClosedWatermark({
           letterSpacing: '0.16em',
           textTransform: 'uppercase',
           whiteSpace: 'nowrap',
-          color: 'rgba(253, 224, 71, 0.22)',
-          border: '2px solid rgba(253, 224, 71, 0.22)',
-          borderRadius: 6,
-          padding: '3px 12px',
+          color: 'rgba(255, 235, 120, 0.95)',
+          background: 'rgba(0, 0, 0, 0.35)',
+          border: '3px solid rgba(255, 235, 120, 0.9)',
+          borderRadius: 8,
+          padding: '4px 16px',
+          textShadow: '0 0 10px rgba(0,0,0,0.95), 0 0 18px rgba(253,224,71,0.7), 0 2px 4px rgba(0,0,0,0.9)',
+          boxShadow: '0 0 18px rgba(253,224,71,0.45), inset 0 0 12px rgba(253,224,71,0.15)',
         }}
       >
         {label}

@@ -309,7 +309,7 @@ export default function RankBets({
   return (
     <div className="relative flex flex-col h-full" style={{ overflow: 'visible' }}>
       {/* Betting closed — diagonal stamp over the board */}
-      <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="0.62rem" />
+      <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="0.95rem" />
 
       {/* Header row — label left, Match Cap pill right, same flex row */}
       <div className="flex items-center justify-between flex-shrink-0 mb-1">

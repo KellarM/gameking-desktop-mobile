@@ -1263,7 +1263,7 @@ export default function MobileGameLayout({
           }}
         >
           <BoardShimmer isActive={gamePhase === 'betting'} />
-          <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="0.62rem" />
+          <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="0.95rem" />
           {displayOrder.map(hid => {
             const hand = FIXED_HANDS.find(h => h.id === hid);
             if (!hand) return null;
@@ -1437,7 +1437,7 @@ export default function MobileGameLayout({
           }}
         >
           <BoardShimmer isActive={gamePhase === 'betting'} />
-          <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="0.62rem" />
+          <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="0.95rem" />
           {displayOrder.map(hid => {
             const hand = FIXED_HANDS.find(h => h.id === hid);
             if (!hand) return null;
@@ -1561,7 +1561,7 @@ export default function MobileGameLayout({
           }}
         >
           <BoardShimmer isActive={gamePhase === 'betting'} />
-          <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="0.62rem" />
+          <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="0.95rem" />
           {displayOrder.map(hid => {
             const hand = FIXED_HANDS.find(h => h.id === hid);
             if (!hand) return null;
@@ -1652,7 +1652,7 @@ export default function MobileGameLayout({
           }}
         >
           <BoardShimmer isActive={gamePhase === 'betting'} />
-          <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="0.62rem" />
+          <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="0.95rem" />
           {displayOrder.map(hid => {
             const hand = FIXED_HANDS.find(h => h.id === hid);
             if (!hand) return null;
