@@ -61,7 +61,7 @@ const actionBtnHover = {
   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.65), 0 3px 8px rgba(0,0,0,0.55)',
 };
 
-export default function GearMenu({ soundManager, boardTheme, setBoardTheme, onHowToPlay, onResetBank, onOpenStats, onOpenDesktopLayout }) {
+export default function GearMenu({ soundManager, boardTheme, setBoardTheme, boardBrightness = 100, setBoardBrightness, onHowToPlay, onResetBank, onOpenStats, onOpenDesktopLayout }) {
   const [open, setOpen] = useState(false);
   const [showPlayExamples, setShowPlayExamples] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -193,13 +193,60 @@ export default function GearMenu({ soundManager, boardTheme, setBoardTheme, onHo
                         boxShadow: selected ? `0 0 8px ${t.dot}` : 'none',
                       }} />
                       {t.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+                      </button>
+                      );
+                      })}
+                      </div>
 
-            <div style={sectionDivider} />
+                      {/* ═══ BOARD BRIGHTNESS ═══ */}
+                      {setBoardBrightness && (
+                      <div style={{ marginTop: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <span style={{ ...sectionLabel, marginBottom: 0 }}>Brightness</span>
+                      <span style={{ fontSize: '12px', fontWeight: 800, fontFamily: FONT, color: GOLD_BRIGHT }}>
+                      {Math.round(boardBrightness)}%
+                      </span>
+                      </div>
+                      <div style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      padding: '10px 12px', borderRadius: '10px',
+                      border: `1.5px solid ${GOLD_DIM}`,
+                      background: 'rgba(0,0,0,0.35)',
+                      }}>
+                      <button
+                      onClick={() => setBoardBrightness(Math.max(40, boardBrightness - 10))}
+                      title="Darker"
+                      style={{
+                        width: '30px', height: '30px', borderRadius: '8px', cursor: 'pointer',
+                        border: `1.5px solid ${GOLD}`, background: 'rgba(232,184,75,0.1)',
+                        color: GOLD_BRIGHT, fontSize: '14px', flexShrink: 0, lineHeight: 1,
+                      }}
+                      >
+                      ◀
+                      </button>
+                      <input
+                      type="range" min="40" max="160" step="5"
+                      value={boardBrightness}
+                      onChange={e => setBoardBrightness(parseFloat(e.target.value))}
+                      style={{ width: '100%', height: '6px', cursor: 'pointer', accentColor: GOLD, flexShrink: 1 }}
+                      />
+                      <button
+                      onClick={() => setBoardBrightness(Math.min(160, boardBrightness + 10))}
+                      title="Lighter"
+                      style={{
+                        width: '30px', height: '30px', borderRadius: '8px', cursor: 'pointer',
+                        border: `1.5px solid ${GOLD}`, background: 'rgba(232,184,75,0.1)',
+                        color: GOLD_BRIGHT, fontSize: '14px', flexShrink: 0, lineHeight: 1,
+                      }}
+                      >
+                      ▶
+                      </button>
+                      </div>
+                      </div>
+                      )}
+                      </div>
+
+                      <div style={sectionDivider} />
 
             {/* ═══ DESKTOP LAYOUT ═══ */}
             {onOpenDesktopLayout && (

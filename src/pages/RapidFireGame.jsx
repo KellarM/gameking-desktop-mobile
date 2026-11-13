@@ -65,6 +65,7 @@ import DesktopLayout2 from '@/components/game/DesktopLayout2';
 import DesktopLayoutModal from '@/components/game/DesktopLayoutModal';
 import MobileLayoutModal from '@/components/game/MobileLayoutModal';
 import OnboardingIndicator from '@/components/game/OnboardingIndicator';
+import { readBrightness, applyFeltBrightness, BRIGHTNESS_KEY } from '@/lib/boardFelt';
 
 
 // STARTING_BALANCE = 100 (managed server-side via usePlayerSession)
@@ -206,11 +207,17 @@ export default function RapidFireGame() {
     window.addEventListener('rfth:themechange', h);
     return () => window.removeEventListener('rfth:themechange', h);
   }, []);
+  const [boardBrightness, setBoardBrightness] = useState(() => readBrightness());
+
   useEffect(() => {
     document.body.classList.remove('theme-red','theme-blue','theme-green');
     document.body.classList.add('theme-'+boardTheme);
-    try { localStorage.setItem('rfth_theme', boardTheme); } catch {}
-  }, [boardTheme]);
+    applyFeltBrightness(boardTheme, boardBrightness);
+    try {
+      localStorage.setItem('rfth_theme', boardTheme);
+      localStorage.setItem(BRIGHTNESS_KEY, String(boardBrightness));
+    } catch {}
+  }, [boardTheme, boardBrightness]);
 
   // Game timing
   const { timing, dealerMode, setDealerMode, mobileLayout, setMobileLayout, desktopLayout, setDesktopLayout, suitVariation, setSuitVariation, positionRotation, setPositionRotation, timingClock, setTimingClock, startTimer, stopTimer, reloadTiming } = useGameTiming();
@@ -2318,6 +2325,8 @@ function BoardShimmer({ isActive }) {
                 soundManager={soundManager}
                 boardTheme={boardTheme}
                 setBoardTheme={setBoardTheme}
+                boardBrightness={boardBrightness}
+                setBoardBrightness={setBoardBrightness}
                 onHowToPlay={() => setShowHowToPlay(true)}
                 onOpenStats={() => setShowStatsPanel(true)}
                 onResetBank={handleResetBank}
