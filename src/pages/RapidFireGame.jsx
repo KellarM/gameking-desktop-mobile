@@ -425,9 +425,11 @@ export default function RapidFireGame() {
       const savedGame = localStorage.getItem('rapidFireGameState');
       if (savedGame) {
         const state = JSON.parse(savedGame);
+        // Every game start opens on the ORIGINAL suit set (Baseline deck), regardless of
+        // which variation the previous session ended on. The variation only alternates
+        // as new rounds are played — never on load.
+        setActiveDeckSet(0);
         if (state.roundId) {
-          // Sync deck set to match the restored round BEFORE the re-render this triggers
-          setActiveDeckSet(state.roundId % 2 === 0 ? 1 : 0);
           setRoundId(state.roundId);
         }
         if (state.casinoProfit !== undefined) setCasinoProfit(state.casinoProfit);
