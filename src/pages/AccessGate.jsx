@@ -133,6 +133,16 @@ export default function AccessGate({ onUnlock }) {
           Access is by invitation and each code carries its own expiry date. If yours has lapsed,
           ask Michael for a new one.
         </p>
+
+        <p className="mt-4 text-[13px]">
+          <a
+            href="/access-admin"
+            className="underline underline-offset-4"
+            style={{ color: GOLD }}
+          >
+            Issue or withdraw a pass
+          </a>
+        </p>
       </div>
     </div>
   );

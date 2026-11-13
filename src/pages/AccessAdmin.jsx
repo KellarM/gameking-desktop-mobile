@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { readPass, clearPass } from '@/lib/access';
+import AccessGate from '@/pages/AccessGate';
 
 const GOLD = '#e8b84b';
 const INK = '#0b1220';
@@ -42,6 +43,12 @@ export default function AccessAdmin() {
   }, [isOwner]);
 
   if (!isOwner) {
+    // Straight into the cover page rather than a dead end: enter the owner code
+    // and the reload lands back here with the pass in place.
+    return <AccessGate onUnlock={() => window.location.reload()} />;
+  }
+
+  if (false) {
     return (
       <div className="min-h-screen px-6 py-20 text-slate-200" style={{ backgroundColor: INK }}>
         <div className="mx-auto max-w-md">
