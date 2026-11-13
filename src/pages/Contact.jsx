@@ -11,10 +11,10 @@ export default function Contact() {
         <div className="bg-gray-900 border border-yellow-800/40 rounded-xl p-6">
           <h2 className="text-yellow-300 font-semibold text-lg mb-1">Email</h2>
           <a
-            href="mailto:info@xfhgamestudioltd.ca"
+            href="mailto:KellarM@xfhgamestudioltd.com"
             className="text-blue-400 hover:text-blue-300 transition-colors"
           >
-            info@xfhgamestudioltd.ca
+            KellarM@xfhgamestudioltd.com
           </a>
         </div>
 
