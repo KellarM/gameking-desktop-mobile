@@ -1,0 +1,46 @@
+{
+  "name": "AccessCode",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Who the code is for"
+    },
+    "code": {
+      "type": "string",
+      "description": "The entry code itself"
+    },
+    "expires": {
+      "type": "string",
+      "description": "The last day it works, date only, may be empty"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "false withdraws it without deleting the record"
+    }
+  },
+  "required": [],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
