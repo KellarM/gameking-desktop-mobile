@@ -90,6 +90,28 @@ export default function AccessGate({ onUnlock }) {
           pointer-events: none;
         }
 
+        /* The hall itself: a European gaming room at night, held well back so the
+           plaque reads first and the room is atmosphere rather than subject. */
+        .xfh-hall {
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(115% 85% at 50% 6%, rgba(0,0,0,0) 38%, rgba(3,5,6,0.62) 100%),
+            linear-gradient(180deg, rgba(6,9,11,0.26) 0%, rgba(4,7,8,0.44) 60%, rgba(3,5,6,0.72) 100%),
+            url('/casino-hall.jpg') center 42%/cover no-repeat;
+          animation: xfh-drift 48s ease-in-out infinite alternate;
+          pointer-events: none;
+        }
+
+        @keyframes xfh-drift {
+          from { transform: scale(1.02); }
+          to   { transform: scale(1.09); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .xfh-hall { animation: none; }
+        }
+
         .xfh-frame {
           position: relative;
           z-index: 1;
@@ -331,6 +353,7 @@ export default function AccessGate({ onUnlock }) {
         }
       `}</style>
 
+      <div className="xfh-hall" aria-hidden="true" />
       <div className="xfh-frame">
         <span className="xfh-corner tl" aria-hidden="true" />
         <span className="xfh-corner tr" aria-hidden="true" />
