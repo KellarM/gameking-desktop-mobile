@@ -37,6 +37,9 @@ function MobileHandCard({
 }) {
   const isBettingPhase = gamePhase === 'betting';
   const isActive = isLeading || isWinner;
+  // Betting closed (flop onward) — idle cards dim like the Rank/Color boards;
+  // the leading/winning cards keep their gold highlight.
+  const shaded = !isBettingPhase && !isActive;
 
   let borderCls;
   if (isActive)                  borderCls = 'border-black shadow-black/60 shadow-xl';
@@ -119,6 +122,11 @@ function MobileHandCard({
           ? <div style={{ fontSize: '0.38rem', color: isActive ? '#000' : '#a8956a', fontWeight: 800, lineHeight: 1, textAlign: 'center', flexShrink: 0 }}>{ev.name}</div>
           : <div style={{ fontSize: '0.38rem', lineHeight: 1, flexShrink: 0 }}>&nbsp;</div>;
       })()}
+
+      {/* Dim scrim — betting closed, this hand is not in contention */}
+      {shaded && (
+        <div className="absolute inset-0 rounded-lg pointer-events-none" style={{ zIndex: 5, background: 'rgba(0,0,0,0.55)' }} />
+      )}
 
       {/* WIN! badge — top-right, black bg / gold text (v12 spec) */}
       {isWinner && (

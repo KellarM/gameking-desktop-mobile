@@ -45,6 +45,9 @@ export default function FixedHandCard({
   // isLeading/isWinner = gold bg, black border, black text
   // All other states retain their original styling
   const isActive = isLeading || isWinner;
+  // Once betting closes (flop onward) the idle cards dim, matching the Rank
+  // and Color boards; the leading/winning cards keep their gold highlight.
+  const shaded = !isBettingPhase && !isActive;
   let borderCls;
   if (isActive) borderCls = 'border-black shadow-black/60 shadow-xl';
   else if (disabledByConstraint) borderCls = 'slot-border-dormant bg-black/25';
@@ -124,6 +127,11 @@ export default function FixedHandCard({
           : '\u00A0'}
       </div>
 
+
+      {/* Dim scrim — betting closed, this hand is not in contention */}
+      {shaded &&
+      <div className="absolute inset-0 rounded-xl pointer-events-none z-[5]" style={{ background: 'rgba(0,0,0,0.55)' }} />
+      }
 
       {/* Bet chips — left side (P1–P5) and right side (P6–P10), stacked vertically */}
       {allBets && allBets.length > 0 && (() => {
