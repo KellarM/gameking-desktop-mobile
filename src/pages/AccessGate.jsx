@@ -10,6 +10,7 @@ const GOLD = '#e8b84b';
 
 export default function AccessGate({ onUnlock }) {
   const [code, setCode] = useState('');
+  const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -69,18 +70,48 @@ export default function AccessGate({ onUnlock }) {
             Entry code
           </label>
           <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-            <input
-              id="entry-code"
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="Enter your code"
-              aria-invalid={Boolean(error)}
-              aria-describedby={error ? 'entry-error' : undefined}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-[16px] tracking-[0.14em] text-slate-100 placeholder:tracking-normal placeholder:text-slate-500 focus:border-transparent focus:outline-none focus:ring-2"
-              style={{ ['--tw-ring-color']: GOLD }}
-            />
+            <div className="relative w-full">
+              <input
+                id="entry-code"
+                type={visible ? 'text' : 'password'}
+                value={code}
+                onChange={(event) => setCode(event.target.value)}
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder="Enter your code"
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? 'entry-error' : undefined}
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 py-3 pl-4 pr-14 text-[16px] tracking-[0.14em] text-slate-100 placeholder:tracking-normal placeholder:text-slate-500 focus:border-transparent focus:outline-none focus:ring-2"
+                style={{ ['--tw-ring-color']: GOLD }}
+              />
+              {/* Held down or clicked: the eye shows the code so a mistyped
+                  character is visible without retyping the whole thing. */}
+              <button
+                type="button"
+                onClick={() => setVisible((shown) => !shown)}
+                aria-label={visible ? 'Hide code' : 'Show code'}
+                aria-pressed={visible}
+                title={visible ? 'Hide code' : 'Show code'}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-slate-400 transition-colors hover:text-slate-100 focus:outline-none focus-visible:ring-2"
+                style={{ ['--tw-ring-color']: GOLD }}
+              >
+                {visible ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-10-8-10-8a19.8 19.8 0 0 1 5.06-6.06" />
+                    <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 10 8 10 8a19.8 19.8 0 0 1-2.16 3.19" />
+                    <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                    <line x1="2" y1="2" x2="22" y2="22" />
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M2 12s3-8 10-8 10 8 10 8-3 8-10 8-10-8-10-8Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </button>
+            </div>
             <button
               type="submit"
               disabled={busy || !code.trim()}

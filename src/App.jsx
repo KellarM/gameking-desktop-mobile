@@ -19,6 +19,7 @@ import DeckInspector from './pages/DeckInspector';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import AccessGate from './pages/AccessGate';
+import AccessAdmin from './pages/AccessAdmin';
 import { readPass } from '@/lib/access';
 
 const AuthenticatedApp = () => {
@@ -65,6 +66,7 @@ const AuthenticatedApp = () => {
       <Route path="/deck-inspector" element={<DeckInspector />} />
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
+      <Route path="/access-admin" element={<AccessAdmin />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
