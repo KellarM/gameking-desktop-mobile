@@ -15,6 +15,7 @@ import { COLOR_BOARD_PAYOUTS, LOW_HIGH_PAYOUT, RIVER_STATE_PAYOUTS, calculatePay
 import { getPerHandRankPayout } from '@/lib/perHandRankPayouts';
 import { trackRoundOutcome } from '@/lib/analytics';
 import FixedHandCard from '@/components/game/FixedHandCard';
+import BoardClosedWatermark from '@/components/game/BoardClosedWatermark';
 import CommunityCards from '@/components/game/CommunityCards';
 import SideBets from '@/components/game/SideBets';
 import HistoryRail from '@/components/game/HistoryRail';
@@ -2163,6 +2164,8 @@ function BoardShimmer({ isActive }) {
                 <CountdownClock timeRemaining={countdownTime} isActive={countdownActive} phase={gamePhase} />
               </div>
             )}
+            {/* Betting closed — diagonal stamp over the card board */}
+            <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="1.05rem" />
             <div className="grid grid-cols-5 gap-1.5 h-full auto-rows-fr">
               {handDisplayOrder.map((hid) => {
               const hand = FIXED_HANDS.find(h => h.id === hid);

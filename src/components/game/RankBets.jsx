@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import Chip from './Chip';
 import { getRankOddsRange } from '@/lib/perHandRankPayouts';
 import formatMoney from '@/lib/money';
+import BoardClosedWatermark from './BoardClosedWatermark';
 
 export const RANK_BET_OPTIONS = [
   { key: 'Four of a Kind',  label: '4 Of A Kind'  },
@@ -307,6 +308,9 @@ export default function RankBets({
 
   return (
     <div className="relative flex flex-col h-full" style={{ overflow: 'visible' }}>
+      {/* Betting closed — diagonal stamp over the board */}
+      <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="0.62rem" />
+
       {/* Header row — label left, Match Cap pill right, same flex row */}
       <div className="flex items-center justify-between flex-shrink-0 mb-1">
         <span

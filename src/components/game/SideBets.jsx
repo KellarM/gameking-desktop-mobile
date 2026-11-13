@@ -4,6 +4,7 @@ import { COLOR_BOARD_PAYOUTS, LOW_HIGH_PAYOUT, RIVER_STATE_PAYOUTS } from '@/lib
 import { EnergyArcOverlay } from './GreedEngine';
 import Chip from './Chip';
 import formatMoney from '@/lib/money';
+import BoardClosedWatermark from './BoardClosedWatermark';
 
 const RED_OPTIONS   = [
   { key: '3R', number: '3', payout: `${COLOR_BOARD_PAYOUTS['3R']}:1` },
@@ -306,6 +307,8 @@ export default function SideBets({
       {/* Color Board */}
       <div className="relative flex flex-col min-h-0 p-2" style={{ flex: '2 1 47px', border: '3px solid #e8b84b', borderRadius: '0.75rem', background: 'rgba(0,0,0,0.45)', boxShadow: '0 0 0 1px #000 inset, 0 0 8px rgba(232,184,75,0.3), 0 2px 8px rgba(0,0,0,0.6)', order: riverFirst ? 2 : 1 }}>
         <BoardShimmer isActive={canBetRB} />
+        {/* Betting closed — diagonal stamp over the color board */}
+        <BoardClosedWatermark active={!canBetRB && gamePhase !== 'betting'} fontSize="0.62rem" />
         {/* Header row — label left, Match Cap pill right, same flex row */}
         {!compactLandscape && (
           <div className="flex items-center justify-between flex-shrink-0 mb-1">

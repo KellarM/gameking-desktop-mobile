@@ -3,6 +3,7 @@ import HistoryRail from './HistoryRail';
 import DealerAnnouncement from './DealerAnnouncement';
 import CommunityCards from './CommunityCards';
 import FixedHandCard from './FixedHandCard';
+import BoardClosedWatermark from './BoardClosedWatermark';
 import CountdownClock from './CountdownClock';
 import ToolsMenu from './ToolsMenu';
 import Chip from './Chip';
@@ -481,6 +482,8 @@ export default function DesktopLayout2({
                 <CountdownClock timeRemaining={countdownTime} isActive={countdownActive} phase={gamePhase} />
               </div>
             )}
+            {/* Betting closed — diagonal stamp over the card board */}
+            <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="1.05rem" />
             <div className="grid grid-cols-5 gap-x-1.5 gap-y-1.5 h-full auto-rows-fr">
               {handDisplayOrder.map((hid) => {
                 const hand = FIXED_HANDS.find(h => h.id === hid);

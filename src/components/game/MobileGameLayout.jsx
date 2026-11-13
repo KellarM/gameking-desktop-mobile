@@ -20,6 +20,7 @@ import InsufficientFundsAlert from './InsufficientFundsAlert';
 import AutoTrimToast from './AutoTrimToast';
 import ColorSideAlert from './ColorSideAlert';
 import VolumeControl from './VolumeControl';
+import BoardClosedWatermark from './BoardClosedWatermark';
 
 const CHIP_VALUES = [0.25, 0.05, 0.02, 0.01];
 
@@ -1262,6 +1263,7 @@ export default function MobileGameLayout({
           }}
         >
           <BoardShimmer isActive={gamePhase === 'betting'} />
+          <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="0.62rem" />
           {displayOrder.map(hid => {
             const hand = FIXED_HANDS.find(h => h.id === hid);
             if (!hand) return null;
@@ -1435,6 +1437,7 @@ export default function MobileGameLayout({
           }}
         >
           <BoardShimmer isActive={gamePhase === 'betting'} />
+          <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="0.62rem" />
           {displayOrder.map(hid => {
             const hand = FIXED_HANDS.find(h => h.id === hid);
             if (!hand) return null;
@@ -1558,6 +1561,7 @@ export default function MobileGameLayout({
           }}
         >
           <BoardShimmer isActive={gamePhase === 'betting'} />
+          <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="0.62rem" />
           {displayOrder.map(hid => {
             const hand = FIXED_HANDS.find(h => h.id === hid);
             if (!hand) return null;
@@ -1648,6 +1652,7 @@ export default function MobileGameLayout({
           }}
         >
           <BoardShimmer isActive={gamePhase === 'betting'} />
+          <BoardClosedWatermark active={gamePhase !== 'betting'} fontSize="0.62rem" />
           {displayOrder.map(hid => {
             const hand = FIXED_HANDS.find(h => h.id === hid);
             if (!hand) return null;
