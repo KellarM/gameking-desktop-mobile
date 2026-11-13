@@ -1,4 +1,4 @@
-import { X, RefreshCw, Shuffle, Layers } from 'lucide-react';
+import { X, RefreshCw, Shuffle, Layers, Timer } from 'lucide-react';
 
 const SUIT_KEY = 'rfth_suitVariation';
 const POS_KEY = 'rfth_positionRotation';
@@ -31,7 +31,7 @@ export function setControlSettings(settings) {
   } catch {}
 }
 
-export default function ControlPanel({ isOpen, onClose, suitVariation, setSuitVariation, positionRotation, setPositionRotation }) {
+export default function ControlPanel({ isOpen, onClose, suitVariation, setSuitVariation, positionRotation, setPositionRotation, timingClock, setTimingClock }) {
   if (!isOpen) return null;
 
   function toggleSuit() {
@@ -42,9 +42,14 @@ export default function ControlPanel({ isOpen, onClose, suitVariation, setSuitVa
     setPositionRotation(!positionRotation);
   }
 
+  function toggleClock() {
+    setTimingClock(!timingClock);
+  }
+
   function resetDefaults() {
     setSuitVariation(true);
     setPositionRotation(true);
+    setTimingClock(false);
   }
 
   return (
@@ -116,6 +121,29 @@ export default function ControlPanel({ isOpen, onClose, suitVariation, setSuitVa
               isOn={positionRotation}
               onToggle={togglePosition}
               label="Position Rotation"
+            />
+          </div>
+
+          {/* Timing Clock Toggle */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/60 border border-slate-700/60">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[#e8b84b]/10 border border-[#e8b84b]/30 flex items-center justify-center">
+                <Timer className="w-5 h-5 text-[#e8b84b]" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-200">Timing Clock</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Shows a live timer from first bet to round resolution
+                </p>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Off = clock hidden (default)
+                </p>
+              </div>
+            </div>
+            <ToggleSwitch
+              isOn={timingClock}
+              onToggle={toggleClock}
+              label="Timing Clock"
             />
           </div>
         </div>

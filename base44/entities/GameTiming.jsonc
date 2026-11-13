@@ -51,6 +51,11 @@
       "default": true,
       "description": "Toggle card position rotation each round"
     },
+    "timingClock": {
+      "type": "boolean",
+      "default": false,
+      "description": "Show the live round timer on the desktop bottom bar (first bet to round resolution)"
+    },
     "description": {
       "type": "string",
       "maxLength": 1000

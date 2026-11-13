@@ -50,6 +50,7 @@ import DealerButton from '@/components/game/DealerButton';
 import HowToPlayOverlay from '@/components/game/HowToPlayOverlay';
 import { useGameTiming } from '@/hooks/useGameTiming';
 import CountdownClock from '@/components/game/CountdownClock';
+import RoundTimer from '@/components/game/RoundTimer';
 import { useGameVersions } from '@/hooks/useGameVersions';
 import { usePlayerSession } from '@/hooks/usePlayerSession';
 import { useAuditRound } from '@/hooks/useAuditRound';
@@ -212,7 +213,7 @@ export default function RapidFireGame() {
   }, [boardTheme]);
 
   // Game timing
-  const { timing, dealerMode, setDealerMode, mobileLayout, setMobileLayout, desktopLayout, setDesktopLayout, suitVariation, setSuitVariation, positionRotation, setPositionRotation, startTimer, stopTimer, reloadTiming } = useGameTiming();
+  const { timing, dealerMode, setDealerMode, mobileLayout, setMobileLayout, desktopLayout, setDesktopLayout, suitVariation, setSuitVariation, positionRotation, setPositionRotation, timingClock, setTimingClock, startTimer, stopTimer, reloadTiming } = useGameTiming();
 
   // Control locks (Suit Variation / Position Rotation) come from the shared settings record.
   // Refs so round setup always reads the current, persisted value.
@@ -1912,7 +1913,7 @@ function BoardShimmer({ isActive }) {
         <DesktopLayoutModal current={desktopLayout} onSelect={(v) => { setDesktopLayout(v); setShowDesktopLayout(false); }} onClose={() => setShowDesktopLayout(false)} />
       )}
       <GameVersionsModal isOpen={showVersions} onClose={() => setShowVersions(false)} />
-      <ControlPanel isOpen={showControl} onClose={() => setShowControl(false)} suitVariation={suitVariation} setSuitVariation={setSuitVariation} positionRotation={positionRotation} setPositionRotation={setPositionRotation} />
+      <ControlPanel isOpen={showControl} onClose={() => setShowControl(false)} suitVariation={suitVariation} setSuitVariation={setSuitVariation} positionRotation={positionRotation} setPositionRotation={setPositionRotation} timingClock={timingClock} setTimingClock={setTimingClock} />
       {showBellCurve && (
         <BellCurveModal
           onClose={() => setShowBellCurve(false)}
@@ -2296,6 +2297,7 @@ function BoardShimmer({ isActive }) {
                 <span className="text-yellow-400 font-black text-lg leading-none tracking-tight" style={{ textShadow: '0 0 8px rgba(251,191,36,0.7)' }}>${totalBet.toFixed(2)}</span>
               </div>
             </div>
+            <RoundTimer enabled={timingClock} roundId={roundId} gamePhase={gamePhase} totalBet={totalBet} />
           </div>
 
           {/* RIGHT section: Clear + Gear — flex:1, mirrors LEFT section's width so CENTER lands at true midpoint */}

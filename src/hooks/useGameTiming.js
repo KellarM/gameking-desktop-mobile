@@ -13,6 +13,7 @@ const DEFAULT_TIMING = {
   desktopLayout: '1', // default: Layout 1 (original desktop arrangement)
   suitVariation: true, // default: ON — matches game behavior since launch
   positionRotation: true, // default: ON — matches game behavior since launch
+  timingClock: false, // default: OFF — live round timer hidden
 };
 
 const DEALER_MODE_KEY = 'rfth_dealerMode';
@@ -20,6 +21,7 @@ const MOBILE_LAYOUT_KEY = 'rfth_mobileLayout';
 const DESKTOP_LAYOUT_KEY = 'rfth_desktop_layout';
 const SUIT_VARIATION_KEY = 'rfth_suitVariation';
 const POSITION_ROTATION_KEY = 'rfth_positionRotation';
+const TIMING_CLOCK_KEY = 'rfth_timingClock';
 
 function readLocal(key, fallback) {
   try {
@@ -51,6 +53,7 @@ export function useGameTiming() {
   const [desktopLayout, setDesktopLayoutState] = useState(() => readLocal(DESKTOP_LAYOUT_KEY, '1'));
   const [suitVariation, setSuitVariationState] = useState(() => readLocalBool(SUIT_VARIATION_KEY, true));
   const [positionRotation, setPositionRotationState] = useState(() => readLocalBool(POSITION_ROTATION_KEY, true));
+  const [timingClock, setTimingClockState] = useState(() => readLocalBool(TIMING_CLOCK_KEY, false));
 
   const pendingRef = useRef({}); // stash values set before recordId is ready
 
@@ -90,6 +93,11 @@ export function useGameTiming() {
         setPositionRotationState(v);
         writeLocal(POSITION_ROTATION_KEY, v);
       }
+      if (rec.timingClock !== undefined && rec.timingClock !== null) {
+        const v = !!rec.timingClock;
+        setTimingClockState(v);
+        writeLocal(TIMING_CLOCK_KEY, v);
+      }
 
       // Flush any writes made before the record id was ready
       const pending = pendingRef.current;
@@ -114,6 +122,7 @@ export function useGameTiming() {
           desktopLayout: readLocal(DESKTOP_LAYOUT_KEY, '1'),
           suitVariation: readLocalBool(SUIT_VARIATION_KEY, true),
           positionRotation: readLocalBool(POSITION_ROTATION_KEY, true),
+          timingClock: readLocalBool(TIMING_CLOCK_KEY, false),
         });
         if (created?.id) applyRecord(created, created.id);
       } catch (e) {
@@ -228,6 +237,16 @@ export function useGameTiming() {
     }
   }, [recordId]);
 
+  const setTimingClock = useCallback((v) => {
+    setTimingClockState(v);
+    writeLocal(TIMING_CLOCK_KEY, v);
+    if (recordId) {
+      base44.entities.GameTiming.update(recordId, { timingClock: v }).catch(() => {});
+    } else {
+      pendingRef.current = { ...pendingRef.current, timingClock: v };
+    }
+  }, [recordId]);
+
   return {
     timing, recordId,
     dealerMode, setDealerMode,
@@ -235,6 +254,7 @@ export function useGameTiming() {
     desktopLayout, setDesktopLayout,
     suitVariation, setSuitVariation,
     positionRotation, setPositionRotation,
+    timingClock, setTimingClock,
     startTimer, stopTimer, reloadTiming
   };
 }
