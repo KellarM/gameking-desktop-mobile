@@ -87,6 +87,13 @@
 
 
 @layer base {
+  /* Fit the game to the real visible viewport — a 100vw frame plus a scrollbar
+     was wider than the window, which pushed the bottom border off screen. */
+  html, body, #root {
+    height: 100%;
+    max-width: 100%;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }

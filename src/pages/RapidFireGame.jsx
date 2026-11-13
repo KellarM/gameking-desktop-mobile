@@ -1835,7 +1835,7 @@ function BoardShimmer({ isActive }) {
         onAbandon={handleRecoveryAbandon}
       />
       <style>{`@keyframes rfUnlockFadeOut{0%{opacity:0}5%{opacity:1}88%{opacity:1}100%{opacity:0}}`}</style>
-      <div className={`velvet-board h-screen w-screen overflow-hidden text-white flex flex-col theme-${boardTheme}`} onClick={preloadSounds} onTouchStart={preloadSounds}>
+      <div className={`velvet-board h-[100dvh] w-full overflow-hidden text-white flex flex-col theme-${boardTheme}`} onClick={preloadSounds} onTouchStart={preloadSounds}>
 
       {/* Alerts */}
       <HandBetLimitAlert
