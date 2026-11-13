@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -17,9 +18,12 @@ import OppositeGameStats from './pages/OppositeGameStats';
 import DeckInspector from './pages/DeckInspector';
 import About from './pages/About';
 import Contact from './pages/Contact';
+import AccessGate from './pages/AccessGate';
+import { readPass } from '@/lib/access';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const [pass, setPass] = useState(readPass());
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -39,6 +43,12 @@ const AuthenticatedApp = () => {
       navigateToLogin();
       return null;
     }
+  }
+
+  // The front door. Nothing below renders without a pass the server issued, so
+  // the game and the analysis pages cannot be reached by guessing a URL.
+  if (!pass) {
+    return <AccessGate onUnlock={setPass} />;
   }
 
   // Render the main app
