@@ -19,7 +19,7 @@ const POOL_IDX = { cardDeal: 0, chipPlace: 0, chipRemove: 0 };
 
 const AMBIENT = new Audio('https://media.base44.com/files/public/6a1a6f6e670be2c42b2d0a99/033e65cf3_freesound_community-poker-room-33521.mp3');
 AMBIENT.loop = true;
-AMBIENT.volume = 0.4;
+AMBIENT.volume = 0.05;
 AMBIENT.preload = 'auto';
 
 function play(key, volume) {

@@ -65,7 +65,7 @@ export default function GearMenu({ soundManager, boardTheme, setBoardTheme, boar
   const [open, setOpen] = useState(false);
   const [showPlayExamples, setShowPlayExamples] = useState(false);
   const [muted, setMuted] = useState(false);
-  const [volume, setVolume] = useState(0.4);
+  const [volume, setVolume] = useState(0.05);
   const ref = useRef(null);
 
   useEffect(() => {
